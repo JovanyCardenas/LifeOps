@@ -3,139 +3,85 @@
 {% block title %}LifeOps Dashboard{% endblock %}
 
 {% block content %}
-<section class="page-shell">
-  <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ today|date:"l, F j" }}</p>
-      <h1>Welcome back, {{ user.first_name|default:user.username }}.</h1>
+<section class="app-layout">
+  <aside class="sidebar">
+    <p class="sidebar-label">Workspace</p>
+    <a class="sidebar-link active" href="{% url 'dashboard' %}">Overview</a>
+    {% for module in modules %}
+      <a class="sidebar-link" href="{% url 'module_list' module.slug %}">{{ module.title }}</a>
+    {% endfor %}
+    <a class="sidebar-link" href="{% url 'messages' %}">Messages</a>
+    <a class="sidebar-link" href="{% url 'dashboard_settings' %}">Customize</a>
+  </aside>
+
+  <div class="content-area">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">{{ today|date:"l, F j" }}</p>
+        <h1>Command center</h1>
+        <p class="page-subtitle">A private dashboard for the operations that keep your day moving.</p>
+      </div>
+      <div class="toolbar">
+        <a class="button button-secondary" href="{% url 'dashboard_settings' %}">Customize widgets</a>
+        <a class="button" href="{% url 'module_create' 'requirements' %}">Add task</a>
+      </div>
     </div>
-    <a class="button button-secondary" href="{% url 'messages' %}">{{ unread_messages }} unread messages</a>
-  </div>
 
-  <div class="summary-grid">
-    <article class="summary-card">
-      <span>Open requirements</span>
-      <strong>{{ open_requirements }}</strong>
-    </article>
-    <article class="summary-card">
-      <span>Monthly spend</span>
-      <strong>${{ budget_spend|floatformat:0 }}</strong>
-    </article>
-    <article class="summary-card">
-      <span>Total debt</span>
-      <strong>${{ debt_total|floatformat:0 }}</strong>
-    </article>
-    <article class="summary-card">
-      <span>Low stock items</span>
-      <strong>{{ low_stock_count }}</strong>
-    </article>
-  </div>
+    <div class="summary-grid">
+      <article class="summary-card">
+        <span>Open requirements</span>
+        <strong>{{ open_requirements }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Monthly spend</span>
+        <strong>${{ budget_spend|floatformat:0 }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Total debt</span>
+        <strong>${{ debt_total|floatformat:0 }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Low stock items</span>
+        <strong>{{ low_stock_count }}</strong>
+      </article>
+    </div>
 
-  <div class="dashboard-grid">
-    <section class="module">
-      <div class="module-title">
-        <h2>Schedule</h2>
-        <span>Work, school, personal</span>
-      </div>
-      {% for event in events %}
-        <div class="row-item">
-          <strong>{{ event.title }}</strong>
-          <span>{{ event.starts_at|date:"M j, g:i A" }} · {{ event.get_category_display }}</span>
-        </div>
-      {% empty %}
-        <p class="empty">No upcoming events yet.</p>
+    <div class="quick-actions">
+      {% for module in modules %}
+        <a href="{% url 'module_create' module.slug %}">+ {{ module.add_label }}</a>
       {% endfor %}
-    </section>
+    </div>
 
-    <section class="module">
-      <div class="module-title">
-        <h2>Requirements</h2>
-        <span>Assignments, bills, tasks</span>
-      </div>
-      {% for requirement in requirements %}
-        <div class="row-item">
-          <strong>{{ requirement.title }}</strong>
-          <span>{{ requirement.get_category_display }}{% if requirement.due_at %} · due {{ requirement.due_at|date:"M j" }}{% endif %}</span>
-        </div>
+    <div class="dashboard-grid">
+      {% for widget in widgets %}
+        <section class="module">
+          <div class="module-title">
+            <div>
+              <h2>{{ widget.title }}</h2>
+              <span>{{ widget.subtitle }}</span>
+            </div>
+            {% if widget.section == "messages" %}
+              <a class="small-action" href="{% url 'messages' %}">Open</a>
+            {% else %}
+              <a class="small-action" href="{% url 'module_list' widget.section %}">Manage</a>
+            {% endif %}
+          </div>
+          {% for item in widget.items %}
+            <div class="row-item">
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.meta }}</span>
+            </div>
+          {% empty %}
+            <p class="empty">Nothing here yet. Use quick actions to add your first item.</p>
+          {% endfor %}
+        </section>
       {% empty %}
-        <p class="empty">No requirements added.</p>
+        <section class="module wide">
+          <h2>No widgets selected</h2>
+          <p class="empty">Open dashboard customization and turn on the widgets you want to see.</p>
+        </section>
       {% endfor %}
-    </section>
-
-    <section class="module">
-      <div class="module-title">
-        <h2>Habits</h2>
-        <span>Consistency tracking</span>
-      </div>
-      {% for habit in habits %}
-        <div class="row-item split">
-          <strong>{{ habit.name }}</strong>
-          <span>{{ habit.current_streak }} day streak</span>
-        </div>
-      {% empty %}
-        <p class="empty">No habits added.</p>
-      {% endfor %}
-    </section>
-
-    <section class="module">
-      <div class="module-title">
-        <h2>Budget</h2>
-        <span>Monthly categories</span>
-      </div>
-      {% for budget in budgets %}
-        <div class="row-item split">
-          <strong>{{ budget.name }}</strong>
-          <span>${{ budget.remaining|floatformat:0 }} left</span>
-        </div>
-      {% empty %}
-        <p class="empty">No budget categories added.</p>
-      {% endfor %}
-    </section>
-
-    <section class="module">
-      <div class="module-title">
-        <h2>Meals</h2>
-        <span>Recipe planning</span>
-      </div>
-      {% for meal in meal_plans %}
-        <div class="row-item">
-          <strong>{{ meal.recipe_name }}</strong>
-          <span>{{ meal.meal_date|date:"M j" }} · {{ meal.meal_type }} · {{ meal.protein_grams }}g protein</span>
-        </div>
-      {% empty %}
-        <p class="empty">No meals planned.</p>
-      {% endfor %}
-    </section>
-
-    <section class="module">
-      <div class="module-title">
-        <h2>Career</h2>
-        <span>Job applications</span>
-      </div>
-      {% for application in job_applications %}
-        <div class="row-item">
-          <strong>{{ application.role }}</strong>
-          <span>{{ application.company }} · {{ application.get_status_display }}</span>
-        </div>
-      {% empty %}
-        <p class="empty">No applications tracked.</p>
-      {% endfor %}
-    </section>
-
-    <section class="module">
-      <div class="module-title">
-        <h2>Inventory</h2>
-        <span>Home and supplies</span>
-      </div>
-      {% for item in inventory_items %}
-        <div class="row-item split">
-          <strong>{{ item.name }}</strong>
-          <span>{{ item.quantity }} in {{ item.location|default:"storage" }}</span>
-        </div>
-      {% empty %}
-        <p class="empty">No inventory items added.</p>
-      {% endfor %}
-    </section>
+    </div>
   </div>
 </section>
 {% endblock %}

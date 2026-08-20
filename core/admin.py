@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import (
     BudgetCategory,
+    DashboardWidget,
     Debt,
     Habit,
     InventoryItem,
@@ -35,6 +36,7 @@ class RequirementAdmin(admin.ModelAdmin):
 
 admin.site.register(Habit)
 admin.site.register(BudgetCategory)
+admin.site.register(DashboardWidget)
 admin.site.register(Debt)
 admin.site.register(MealPlan)
 admin.site.register(JobApplication)

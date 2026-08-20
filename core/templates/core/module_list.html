@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ config.title }} | LifeOps{% endblock %}
+
+{% block content %}
+<section class="page-shell">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ config.eyebrow }}</p>
+      <h1>{{ config.title }}</h1>
+      <p class="page-subtitle">{{ config.description }}</p>
+    </div>
+    <div class="toolbar">
+      <a class="button button-secondary" href="{% url 'dashboard' %}">Back to dashboard</a>
+      <a class="button" href="{% url 'module_create' config.slug %}">{{ config.add_label }}</a>
+    </div>
+  </div>
+
+  <section class="table-panel">
+    <div class="table-header">
+      <span>{{ records|length }} records</span>
+      <span>Private to your account</span>
+    </div>
+    {% for record in records %}
+      <article class="record-row">
+        <div>
+          <strong>{{ record.title }}</strong>
+          <span>{{ record.meta }}</span>
+        </div>
+        <div class="row-actions">
+          <a href="{% url 'module_edit' config.slug record.object.pk %}">Edit</a>
+          <a class="danger-link" href="{% url 'module_delete' config.slug record.object.pk %}">Delete</a>
+        </div>
+      </article>
+    {% empty %}
+      <div class="empty-state">
+        <h2>No {{ config.title|lower }} yet</h2>
+        <p>Add your first item to make this section useful.</p>
+        <a class="button" href="{% url 'module_create' config.slug %}">{{ config.add_label }}</a>
+      </div>
+    {% endfor %}
+  </section>
+</section>
+{% endblock %}

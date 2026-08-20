@@ -12,8 +12,21 @@
     <a class="button button-secondary" href="{% url 'dashboard' %}">Back to dashboard</a>
   </div>
 
+  <form class="form-panel compact-form" method="post">
+    {% csrf_token %}
+    <h2>Send message</h2>
+    {% for field in form %}
+      <label class="form-field">
+        <span>{{ field.label }}</span>
+        {{ field }}
+        {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+      </label>
+    {% endfor %}
+    <button class="button" type="submit">Send</button>
+  </form>
+
   <section class="module">
-    {% for message in messages %}
+    {% for message in message_list %}
       <div class="row-item">
         <strong>{{ message.sender.username }} to {{ message.recipient.username }}</strong>
         <span>{{ message.created_at|date:"M j, g:i A" }}</span>

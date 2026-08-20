@@ -20,6 +20,41 @@ class Profile(TimeStampedModel):
         return self.display_name or self.user.get_username()
 
 
+class DashboardWidget(TimeStampedModel):
+    SCHEDULE = "schedule"
+    REQUIREMENTS = "requirements"
+    HABITS = "habits"
+    BUDGET = "budget"
+    DEBT = "debt"
+    MEALS = "meals"
+    CAREER = "career"
+    INVENTORY = "inventory"
+    MESSAGES = "messages"
+    WIDGET_CHOICES = [
+        (SCHEDULE, "Schedule"),
+        (REQUIREMENTS, "Requirements"),
+        (HABITS, "Habits"),
+        (BUDGET, "Budget"),
+        (DEBT, "Debt"),
+        (MEALS, "Meals"),
+        (CAREER, "Career"),
+        (INVENTORY, "Inventory"),
+        (MESSAGES, "Messages"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    key = models.CharField(max_length=32, choices=WIDGET_CHOICES)
+    visible = models.BooleanField(default=True)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "key"]
+        unique_together = ("user", "key")
+
+    def __str__(self):
+        return f"{self.user} · {self.get_key_display()}"
+
+
 class ScheduleEvent(TimeStampedModel):
     SCHOOL = "school"
     WORK = "work"

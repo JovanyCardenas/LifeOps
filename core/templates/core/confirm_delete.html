@@ -1,0 +1,18 @@
+{% extends "core/base.html" %}
+
+{% block title %}Delete {{ config.title }} | LifeOps{% endblock %}
+
+{% block content %}
+<section class="page-shell narrow">
+  <form class="form-panel delete-panel" method="post">
+    {% csrf_token %}
+    <p class="eyebrow">Confirm removal</p>
+    <h1>Delete this item?</h1>
+    <p class="page-subtitle">{{ object }}</p>
+    <div class="form-actions">
+      <a class="button button-secondary" href="{{ cancel_url }}">Cancel</a>
+      <button class="button danger-button" type="submit">Delete</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

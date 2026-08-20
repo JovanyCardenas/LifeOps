@@ -15,7 +15,9 @@ The project is designed as a portfolio-grade application: private user data, a d
 - Meal and recipe planning
 - Job application tracking
 - Inventory tracking with low-stock counts
-- Simple user-to-user messages
+- Front-end add, edit, and delete flows for dashboard modules
+- Customizable dashboard widgets with visibility and ordering controls
+- Simple user-to-user messages with a compose form
 - Admin panel for managing records
 - Seed command for demo data
 - Pytest coverage for core flows

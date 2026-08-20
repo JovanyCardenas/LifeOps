@@ -16,6 +16,9 @@
     <nav class="nav">
       {% if user.is_authenticated %}
         <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'module_list' 'schedule' %}">Schedule</a>
+        <a href="{% url 'module_list' 'requirements' %}">Tasks</a>
+        <a href="{% url 'module_list' 'budget' %}">Finance</a>
         <a href="{% url 'messages' %}">Messages</a>
         <form action="{% url 'logout' %}" method="post">
           {% csrf_token %}
@@ -29,6 +32,13 @@
   </header>
 
   <main>
+    {% if messages %}
+      <div class="flash-stack">
+        {% for message in messages %}
+          <div class="flash">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 </body>

@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from core.models import (
     BudgetCategory,
+    DashboardWidget,
     Debt,
     Habit,
     InventoryItem,
@@ -59,6 +60,7 @@ class Command(BaseCommand):
             model.objects.filter(user=demo).delete()
         Message.objects.filter(sender=demo).delete()
         Message.objects.filter(recipient=demo).delete()
+        DashboardWidget.objects.filter(user=demo).delete()
 
         now = timezone.now()
         today = timezone.localdate()
@@ -213,5 +215,21 @@ class Command(BaseCommand):
             recipient=demo,
             body="Can you send the project outline before our study session?",
         )
+
+        for position, key in enumerate(
+            [
+                "schedule",
+                "requirements",
+                "habits",
+                "budget",
+                "debt",
+                "meals",
+                "career",
+                "inventory",
+                "messages",
+            ],
+            start=1,
+        ):
+            DashboardWidget.objects.create(user=demo, key=key, position=position)
 
         self.stdout.write(self.style.SUCCESS("Demo account ready: demo / DemoPass123!"))

@@ -1,0 +1,34 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ mode }} {{ config.title }} | LifeOps{% endblock %}
+
+{% block content %}
+<section class="page-shell narrow">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{ config.eyebrow }}</p>
+      <h1>{{ mode }} {{ config.title|lower }}</h1>
+      <p class="page-subtitle">{{ config.description }}</p>
+    </div>
+  </div>
+
+  <form class="form-panel" method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <label class="form-field">
+        <span>{{ field.label }}</span>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+      </label>
+    {% endfor %}
+    {% if form.non_field_errors %}
+      <div class="form-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="form-actions">
+      <a class="button button-secondary" href="{% url 'module_list' config.slug %}">Cancel</a>
+      <button class="button" type="submit">Save</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
