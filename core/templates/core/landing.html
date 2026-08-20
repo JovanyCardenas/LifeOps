@@ -1,0 +1,58 @@
+{% extends "core/base.html" %}
+
+{% block title %}LifeOps | Daily Operations Dashboard{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Personal operations for school, work, and life</p>
+    <h1>Manage the moving parts of your day from one private workspace.</h1>
+    <p>
+      LifeOps brings schedules, assignments, habits, budgets, meals, job applications,
+      inventory, and messages into one calm dashboard built for real daily use.
+    </p>
+    <div class="actions">
+      <a class="button" href="{% url 'demo_login' %}">Explore demo account</a>
+      <a class="button button-secondary" href="{% url 'login' %}">Log in</a>
+    </div>
+  </div>
+  <div class="hero-panel" aria-label="Product preview">
+    <div class="panel-header">
+      <span>Today</span>
+      <strong>Operations Health</strong>
+    </div>
+    <div class="metric-grid">
+      <div><strong>4</strong><span>Requirements</span></div>
+      <div><strong>$820</strong><span>Budget left</span></div>
+      <div><strong>12</strong><span>Day streak</span></div>
+      <div><strong>3</strong><span>Applications</span></div>
+    </div>
+    <div class="timeline">
+      <span></span>
+      <p>8:30 AM · Software Engineering lecture</p>
+      <span></span>
+      <p>1:00 PM · Internship interview prep</p>
+      <span></span>
+      <p>6:15 PM · Gym: upper body</p>
+    </div>
+  </div>
+</section>
+
+<section class="module-band">
+  <h2>Built as a portfolio-ready full-stack project</h2>
+  <div class="module-grid">
+    <article>
+      <h3>Private by default</h3>
+      <p>Every dashboard record belongs to a user, with a demo account for reviewers.</p>
+    </article>
+    <article>
+      <h3>Modular product surface</h3>
+      <p>Finance, wellness, school, career, home, and messaging can grow independently.</p>
+    </article>
+    <article>
+      <h3>Tested foundation</h3>
+      <p>The project starts with authentication, privacy, view, and seed-data tests.</p>
+    </article>
+  </div>
+</section>
+{% endblock %}

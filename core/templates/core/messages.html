@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+
+{% block title %}LifeOps Messages{% endblock %}
+
+{% block content %}
+<section class="page-shell narrow">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Shared planning</p>
+      <h1>Messages</h1>
+    </div>
+    <a class="button button-secondary" href="{% url 'dashboard' %}">Back to dashboard</a>
+  </div>
+
+  <section class="module">
+    {% for message in messages %}
+      <div class="row-item">
+        <strong>{{ message.sender.username }} to {{ message.recipient.username }}</strong>
+        <span>{{ message.created_at|date:"M j, g:i A" }}</span>
+        <p>{{ message.body }}</p>
+      </div>
+    {% empty %}
+      <p class="empty">No messages yet.</p>
+    {% endfor %}
+  </section>
+</section>
+{% endblock %}

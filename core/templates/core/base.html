@@ -1,0 +1,35 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LifeOps{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{% url 'landing' %}">
+      <span class="brand-mark">L</span>
+      <span>LifeOps</span>
+    </a>
+    <nav class="nav">
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'messages' %}">Messages</a>
+        <form action="{% url 'logout' %}" method="post">
+          {% csrf_token %}
+          <button class="link-button" type="submit">Log out</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}">Log in</a>
+        <a class="button button-secondary" href="{% url 'demo_login' %}">View demo</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
