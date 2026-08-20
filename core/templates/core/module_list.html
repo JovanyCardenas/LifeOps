@@ -1,44 +1,4 @@
-{% extends "core/base.html" %}
-
-{% block title %}{{ config.title }} | LifeOps{% endblock %}
-
-{% block content %}
-<section class="page-shell">
-  <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ config.eyebrow }}</p>
-      <h1>{{ config.title }}</h1>
-      <p class="page-subtitle">{{ config.description }}</p>
-    </div>
-    <div class="toolbar">
-      <a class="button button-secondary" href="{% url 'dashboard' %}">Back to dashboard</a>
-      <a class="button" href="{% url 'module_create' config.slug %}">{{ config.add_label }}</a>
-    </div>
-  </div>
-
-  <section class="table-panel">
-    <div class="table-header">
-      <span>{{ records|length }} records</span>
-      <span>Private to your account</span>
-    </div>
-    {% for record in records %}
-      <article class="record-row">
-        <div>
-          <strong>{{ record.title }}</strong>
-          <span>{{ record.meta }}</span>
-        </div>
-        <div class="row-actions">
-          <a href="{% url 'module_edit' config.slug record.object.pk %}">Edit</a>
-          <a class="danger-link" href="{% url 'module_delete' config.slug record.object.pk %}">Delete</a>
-        </div>
-      </article>
-    {% empty %}
-      <div class="empty-state">
-        <h2>No {{ config.title|lower }} yet</h2>
-        <p>Add your first item to make this section useful.</p>
-        <a class="button" href="{% url 'module_create' config.slug %}">{{ config.add_label }}</a>
-      </div>
-    {% endfor %}
-  </section>
-</section>
+{% extends 'core/base.html' %}{% block title %}{{ module_title }} · LifeOps{% endblock %}{% block content %}
+<div class="page-heading"><div><span class="eyebrow">LifeOps module</span><h1>{{ module_title }}</h1><p>Manage your private {{ module_title|lower }} records.</p></div><a class="btn primary" href="{% url 'module_add' module_key %}">+ Add item</a></div>
+<div class="panel table-panel">{% if items %}<div class="record-list">{% for item in items %}<div class="record-row"><div class="record-main"><strong>{{ item }}</strong><span>{% if item.category %}{{ item.get_category_display }}{% elif item.status %}{{ item.get_status_display }}{% elif item.location %}{{ item.location }}{% else %}Updated {{ item.updated_at|date:'M j, Y' }}{% endif %}</span></div><div class="record-meta">{% if item.due_at %}<span>{{ item.due_at|date:'M j, Y g:i A' }}</span>{% elif item.starts_at %}<span>{{ item.starts_at|date:'M j, g:i A' }}</span>{% elif item.balance %}<span>${{ item.balance }}</span>{% elif item.monthly_limit %}<span>${{ item.current_spend }} / ${{ item.monthly_limit }}</span>{% elif item.quantity != None %}<span>Qty {{ item.quantity }}</span>{% endif %}<a href="{% url 'module_edit' module_key item.pk %}">Edit</a><a class="danger-link" href="{% url 'module_delete' module_key item.pk %}">Delete</a></div></div>{% endfor %}</div>{% else %}<div class="empty-state"><h3>No {{ module_title|lower }} yet</h3><p>Add your first record. Everything you create here stays scoped to your account.</p><a class="btn primary" href="{% url 'module_add' module_key %}">Add first item</a></div>{% endif %}</div>
 {% endblock %}

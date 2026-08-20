@@ -1,384 +1,178 @@
-from dataclasses import dataclass
-
-from django.contrib import messages as flash
-from django.contrib.auth import authenticate, login
+from decimal import Decimal
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import login
+from django.contrib.auth.forms import UserCreationForm
+from django.utils import timezone
 from django.contrib.auth.models import User
-from django.db.models import F, Q, Sum
+from django.db.models import Q, Sum
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
-from django.utils import timezone
+from django.urls import reverse, reverse_lazy
+from django.views.generic import CreateView, UpdateView, DeleteView, ListView
+from .forms import *
+from .models import *
 
-from .forms import (
-    BudgetCategoryForm,
-    DashboardWidgetForm,
-    DebtForm,
-    HabitForm,
-    InventoryItemForm,
-    JobApplicationForm,
-    MealPlanForm,
-    MessageForm,
-    RequirementForm,
-    ScheduleEventForm,
-)
-from .models import (
-    BudgetCategory,
-    DashboardWidget,
-    Debt,
-    Habit,
-    InventoryItem,
-    JobApplication,
-    MealPlan,
-    Message,
-    Requirement,
-    ScheduleEvent,
-)
-
-
-@dataclass(frozen=True)
-class ModuleConfig:
-    slug: str
-    title: str
-    eyebrow: str
-    description: str
-    model: object
-    form_class: object
-    add_label: str
-
-
-MODULES = {
-    "schedule": ModuleConfig(
-        "schedule",
-        "Schedule",
-        "Daily planning",
-        "Separate school, work, and personal events.",
-        ScheduleEvent,
-        ScheduleEventForm,
-        "Add event",
-    ),
-    "requirements": ModuleConfig(
-        "requirements",
-        "Requirements",
-        "Assignments and tasks",
-        "Track upcoming assignments, bills, and life admin.",
-        Requirement,
-        RequirementForm,
-        "Add requirement",
-    ),
-    "habits": ModuleConfig(
-        "habits",
-        "Habits",
-        "Consistency",
-        "Track weekly targets and current streaks.",
-        Habit,
-        HabitForm,
-        "Add habit",
-    ),
-    "budget": ModuleConfig(
-        "budget",
-        "Budget",
-        "Personal finance",
-        "Manage monthly spending categories.",
-        BudgetCategory,
-        BudgetCategoryForm,
-        "Add category",
-    ),
-    "debt": ModuleConfig(
-        "debt",
-        "Debt",
-        "Payoff planning",
-        "Track balances, payments, and APR.",
-        Debt,
-        DebtForm,
-        "Add debt",
-    ),
-    "meals": ModuleConfig(
-        "meals",
-        "Meals",
-        "Meal planning",
-        "Plan recipes and nutrition for upcoming days.",
-        MealPlan,
-        MealPlanForm,
-        "Add meal",
-    ),
-    "career": ModuleConfig(
-        "career",
-        "Career",
-        "Job applications",
-        "Manage applications, statuses, deadlines, and notes.",
-        JobApplication,
-        JobApplicationForm,
-        "Add application",
-    ),
-    "inventory": ModuleConfig(
-        "inventory",
-        "Inventory",
-        "Home operations",
-        "Track supplies, locations, quantities, and reorder points.",
-        InventoryItem,
-        InventoryItemForm,
-        "Add item",
-    ),
+WIDGETS=[
+ ('schedule','Schedule'),('requirements','Requirements'),('habits','Habits'),('budget','Budget'),('debt','Debt'),
+ ('meals','Meals'),('career','Career'),('inventory','Inventory'),('messages','Messages')
+]
+MODULES={
+ 'schedule':(ScheduleEvent,ScheduleEventForm,'Schedule','starts_at'),
+ 'requirements':(Requirement,RequirementForm,'Requirements','due_at'),
+ 'habits':(Habit,HabitForm,'Habits','name'),
+ 'budget':(BudgetCategory,BudgetCategoryForm,'Budget','name'),
+ 'debt':(Debt,DebtForm,'Debt','name'),
+ 'meals':(MealPlan,MealPlanForm,'Meals','meal_date'),
+ 'career':(JobApplication,JobApplicationForm,'Career','company'),
+ 'inventory':(InventoryItem,InventoryItemForm,'Inventory','name'),
 }
 
-WIDGET_DEFAULTS = [
-    ("schedule", "Schedule"),
-    ("requirements", "Requirements"),
-    ("habits", "Habits"),
-    ("budget", "Budget"),
-    ("debt", "Debt"),
-    ("meals", "Meals"),
-    ("career", "Career"),
-    ("inventory", "Inventory"),
-    ("messages", "Messages"),
-]
-
-
 def landing(request):
-    if request.user.is_authenticated:
-        return redirect("dashboard")
-    return render(request, "core/landing.html")
+    return render(request,'core/landing.html')
 
+
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    form=UserCreationForm(request.POST or None)
+    if request.method=='POST' and form.is_valid():
+        user=form.save()
+        Profile.objects.get_or_create(user=user,defaults={'display_name':user.username,'role':'LifeOps user'})
+        login(request,user)
+        return redirect('dashboard')
+    return render(request,'registration/signup.html',{'form':form})
+
+@login_required
+def profile_settings(request):
+    profile,_=Profile.objects.get_or_create(user=request.user,defaults={'display_name':request.user.username})
+    if request.method=='POST':
+        profile.display_name=request.POST.get('display_name','').strip()[:120]
+        profile.role=request.POST.get('role','').strip()[:120]
+        request.user.email=request.POST.get('email','').strip()[:254]
+        request.user.save(update_fields=['email'])
+        profile.save()
+        return redirect('profile_settings')
+    return render(request,'core/profile_settings.html',{'profile':profile})
 
 def demo_login(request):
-    user = authenticate(request, username="demo", password="DemoPass123!")
-    if user is None:
-        user = User.objects.create_user(
-            username="demo",
-            email="demo@example.com",
-            password="DemoPass123!",
-            first_name="Demo",
-            last_name="User",
-        )
-    login(request, user)
-    return redirect("dashboard")
+    user=get_object_or_404(User,username='demo')
+    login(request,user,backend='django.contrib.auth.backends.ModelBackend')
+    return redirect('dashboard')
 
-
-def ensure_dashboard_widgets(user):
-    for position, (key, _label) in enumerate(WIDGET_DEFAULTS, start=1):
-        DashboardWidget.objects.get_or_create(
-            user=user,
-            key=key,
-            defaults={"position": position, "visible": True},
-        )
-
-
-def get_module_or_404(slug):
-    try:
-        return MODULES[slug]
-    except KeyError as exc:
-        raise Http404("Unknown module") from exc
-
-
-def object_meta(obj):
-    if isinstance(obj, ScheduleEvent):
-        return f"{obj.starts_at:%b %d, %I:%M %p} · {obj.get_category_display()}"
-    if isinstance(obj, Requirement):
-        due = f" · due {obj.due_at:%b %d}" if obj.due_at else ""
-        status = "Done" if obj.completed else "Open"
-        return f"{obj.get_category_display()} · {status}{due}"
-    if isinstance(obj, Habit):
-        return f"{obj.current_streak} day streak · {obj.target_per_week}x/week"
-    if isinstance(obj, BudgetCategory):
-        return f"${obj.current_spend} spent · ${obj.remaining} remaining"
-    if isinstance(obj, Debt):
-        return f"${obj.balance} balance · ${obj.minimum_payment} minimum · {obj.apr}% APR"
-    if isinstance(obj, MealPlan):
-        return f"{obj.meal_date:%b %d} · {obj.meal_type} · {obj.protein_grams}g protein"
-    if isinstance(obj, JobApplication):
-        deadline = f" · deadline {obj.deadline:%b %d}" if obj.deadline else ""
-        return f"{obj.company} · {obj.get_status_display()}{deadline}"
-    if isinstance(obj, InventoryItem):
-        return f"{obj.quantity} in {obj.location or 'storage'} · reorder at {obj.reorder_threshold}"
-    return ""
-
-
-def module_records(config, user):
-    return [
-        {"object": obj, "title": str(obj), "meta": object_meta(obj)}
-        for obj in config.model.objects.filter(user=user)
-    ]
-
+def ensure_widgets(user):
+    existing={w.key for w in DashboardWidget.objects.filter(user=user)}
+    for pos,(key,_) in enumerate(WIDGETS):
+        if key not in existing:
+            DashboardWidget.objects.create(user=user,key=key,position=pos,visible=True)
 
 @login_required
 def dashboard(request):
-    ensure_dashboard_widgets(request.user)
-    today = timezone.localdate()
-    user = request.user
-    requirements = Requirement.objects.filter(user=user)
-    budgets = BudgetCategory.objects.filter(user=user)
-    debts = Debt.objects.filter(user=user)
-
-    widget_data = {
-        "schedule": {
-            "title": "Schedule",
-            "subtitle": "Work, school, personal",
-            "section": "schedule",
-            "items": module_records(MODULES["schedule"], user)[:5],
-        },
-        "requirements": {
-            "title": "Requirements",
-            "subtitle": "Assignments, bills, tasks",
-            "section": "requirements",
-            "items": module_records(MODULES["requirements"], user)[:6],
-        },
-        "habits": {
-            "title": "Habits",
-            "subtitle": "Consistency tracking",
-            "section": "habits",
-            "items": module_records(MODULES["habits"], user)[:5],
-        },
-        "budget": {
-            "title": "Budget",
-            "subtitle": "Monthly categories",
-            "section": "budget",
-            "items": module_records(MODULES["budget"], user)[:4],
-        },
-        "debt": {
-            "title": "Debt",
-            "subtitle": "Balances and payments",
-            "section": "debt",
-            "items": module_records(MODULES["debt"], user)[:4],
-        },
-        "meals": {
-            "title": "Meals",
-            "subtitle": "Recipe planning",
-            "section": "meals",
-            "items": module_records(MODULES["meals"], user)[:4],
-        },
-        "career": {
-            "title": "Career",
-            "subtitle": "Job applications",
-            "section": "career",
-            "items": module_records(MODULES["career"], user)[:5],
-        },
-        "inventory": {
-            "title": "Inventory",
-            "subtitle": "Home and supplies",
-            "section": "inventory",
-            "items": module_records(MODULES["inventory"], user)[:5],
-        },
-        "messages": {
-            "title": "Messages",
-            "subtitle": "Shared planning",
-            "section": "messages",
-            "items": [
-                {"title": f"{msg.sender.username} to {msg.recipient.username}", "meta": msg.body}
-                for msg in Message.objects.filter(Q(sender=user) | Q(recipient=user))[:5]
-            ],
-        },
+    ensure_widgets(request.user)
+    widgets=DashboardWidget.objects.filter(user=request.user,visible=True)
+    labels=dict(WIDGETS)
+    data={
+      'schedule': ScheduleEvent.objects.filter(user=request.user).order_by('starts_at')[:5],
+      'requirements': Requirement.objects.filter(user=request.user,completed=False).order_by('due_at')[:5],
+      'habits': Habit.objects.filter(user=request.user)[:5],
+      'budget': BudgetCategory.objects.filter(user=request.user)[:5],
+      'debt': Debt.objects.filter(user=request.user).order_by('-balance')[:5],
+      'meals': MealPlan.objects.filter(user=request.user).order_by('meal_date')[:5],
+      'career': JobApplication.objects.filter(user=request.user)[:5],
+      'inventory': InventoryItem.objects.filter(user=request.user).order_by('quantity')[:5],
+      'messages': Message.objects.filter(Q(sender=request.user)|Q(recipient=request.user))[:5],
     }
-
-    widgets = [
-        widget_data[widget.key]
-        for widget in DashboardWidget.objects.filter(user=user, visible=True)
-        if widget.key in widget_data
-    ]
-
-    context = {
-        "today": today,
-        "open_requirements": requirements.filter(completed=False).count(),
-        "budget_spend": budgets.aggregate(total=Sum("current_spend"))["total"] or 0,
-        "debt_total": debts.aggregate(total=Sum("balance"))["total"] or 0,
-        "low_stock_count": InventoryItem.objects.filter(
-            user=user,
-            quantity__lte=F("reorder_threshold"),
-        ).count(),
-        "unread_messages": Message.objects.filter(recipient=user, read_at__isnull=True).count(),
-        "widgets": widgets,
-        "modules": MODULES.values(),
+    widget_payload=[{'key':w.key,'label':labels.get(w.key,w.key.title()),'items':data.get(w.key,[])} for w in widgets]
+    budget_total=BudgetCategory.objects.filter(user=request.user).aggregate(v=Sum('current_spend'))['v'] or Decimal('0')
+    debt_total=Debt.objects.filter(user=request.user).aggregate(v=Sum('balance'))['v'] or Decimal('0')
+    context={
+      'widgets':widget_payload,
+      'open_requirements':Requirement.objects.filter(user=request.user,completed=False).count(),
+      'monthly_spend':budget_total,
+      'total_debt':debt_total,
+      'low_stock':sum(1 for i in InventoryItem.objects.filter(user=request.user) if i.low_stock),
+      'unread_messages':Message.objects.filter(recipient=request.user,read_at__isnull=True).count(),
     }
-    return render(request, "core/dashboard.html", context)
-
-
-@login_required
-def module_list(request, slug):
-    config = get_module_or_404(slug)
-    return render(
-        request,
-        "core/module_list.html",
-        {"config": config, "records": module_records(config, request.user)},
-    )
-
-
-@login_required
-def module_create(request, slug):
-    config = get_module_or_404(slug)
-    form = config.form_class(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        instance = form.save(commit=False)
-        instance.user = request.user
-        instance.save()
-        flash.success(request, f"{config.title} item added.")
-        return redirect("module_list", slug=slug)
-    return render(request, "core/item_form.html", {"config": config, "form": form, "mode": "Add"})
-
-
-@login_required
-def module_edit(request, slug, pk):
-    config = get_module_or_404(slug)
-    instance = get_object_or_404(config.model, pk=pk, user=request.user)
-    form = config.form_class(request.POST or None, instance=instance)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        flash.success(request, f"{config.title} item updated.")
-        return redirect("module_list", slug=slug)
-    return render(request, "core/item_form.html", {"config": config, "form": form, "mode": "Edit"})
-
-
-@login_required
-def module_delete(request, slug, pk):
-    config = get_module_or_404(slug)
-    instance = get_object_or_404(config.model, pk=pk, user=request.user)
-    if request.method == "POST":
-        instance.delete()
-        flash.success(request, f"{config.title} item removed.")
-        return redirect("module_list", slug=slug)
-    return render(
-        request,
-        "core/confirm_delete.html",
-        {"config": config, "object": instance, "cancel_url": reverse("module_list", args=[slug])},
-    )
-
+    return render(request,'core/dashboard.html',context)
 
 @login_required
 def dashboard_settings(request):
-    ensure_dashboard_widgets(request.user)
-    widgets = DashboardWidget.objects.filter(user=request.user)
-    if request.method == "POST":
-        for widget in widgets:
-            form = DashboardWidgetForm(request.POST, instance=widget, prefix=widget.key)
-            if form.is_valid():
-                form.save()
-        flash.success(request, "Dashboard layout updated.")
-        return redirect("dashboard")
+    ensure_widgets(request.user)
+    qs=DashboardWidget.objects.filter(user=request.user).order_by('position','id')
+    if request.method=='POST':
+        ordered=[]
+        for w in qs:
+            w.visible=request.POST.get(f'visible_{w.id}')=='on'
+            try: w.position=int(request.POST.get(f'position_{w.id}',w.position))
+            except ValueError: pass
+            ordered.append(w)
+        DashboardWidget.objects.bulk_update(ordered,['visible','position'])
+        return redirect('dashboard')
+    return render(request,'core/dashboard_settings.html',{'widgets':qs,'labels':dict(WIDGETS)})
 
-    widget_forms = [
-        {
-            "widget": widget,
-            "label": dict(WIDGET_DEFAULTS).get(widget.key, widget.key.title()),
-            "form": DashboardWidgetForm(instance=widget, prefix=widget.key),
-        }
-        for widget in widgets
-    ]
-    return render(request, "core/dashboard_settings.html", {"widget_forms": widget_forms})
+class OwnedQuerysetMixin(LoginRequiredMixin):
+    def get_queryset(self):
+        return self.model.objects.filter(user=self.request.user)
 
+class OwnedCreateMixin(LoginRequiredMixin):
+    def form_valid(self,form):
+        form.instance.user=self.request.user
+        return super().form_valid(form)
+
+class ModuleListView(OwnedQuerysetMixin,ListView):
+    template_name='core/module_list.html'
+    context_object_name='items'
+    def get_context_data(self,**kwargs):
+        ctx=super().get_context_data(**kwargs)
+        ctx.update(module_key=self.kwargs['module'],module_title=MODULES[self.kwargs['module']][2])
+        return ctx
+    def dispatch(self,request,*args,**kwargs):
+        key=kwargs['module']
+        if key not in MODULES: raise Http404
+        self.model=MODULES[key][0]
+        return super().dispatch(request,*args,**kwargs)
+
+class ModuleCreateView(OwnedCreateMixin,CreateView):
+    template_name='core/item_form.html'
+    def dispatch(self,request,*args,**kwargs):
+        key=kwargs['module']
+        if key not in MODULES: raise Http404
+        self.model,self.form_class,self.module_title,_=MODULES[key]
+        return super().dispatch(request,*args,**kwargs)
+    def get_success_url(self): return reverse('module_list',kwargs={'module':self.kwargs['module']})
+    def get_context_data(self,**kwargs):
+        ctx=super().get_context_data(**kwargs); ctx.update(module_title=self.module_title,action='Add'); return ctx
+
+class ModuleUpdateView(OwnedQuerysetMixin,UpdateView):
+    template_name='core/item_form.html'
+    def dispatch(self,request,*args,**kwargs):
+        key=kwargs['module']
+        if key not in MODULES: raise Http404
+        self.model,self.form_class,self.module_title,_=MODULES[key]
+        return super().dispatch(request,*args,**kwargs)
+    def get_success_url(self): return reverse('module_list',kwargs={'module':self.kwargs['module']})
+    def get_context_data(self,**kwargs):
+        ctx=super().get_context_data(**kwargs); ctx.update(module_title=self.module_title,action='Edit'); return ctx
+
+class ModuleDeleteView(OwnedQuerysetMixin,DeleteView):
+    template_name='core/confirm_delete.html'
+    def dispatch(self,request,*args,**kwargs):
+        key=kwargs['module']
+        if key not in MODULES: raise Http404
+        self.model,self.form_class,self.module_title,_=MODULES[key]
+        return super().dispatch(request,*args,**kwargs)
+    def get_success_url(self): return reverse('module_list',kwargs={'module':self.kwargs['module']})
+    def get_context_data(self,**kwargs):
+        ctx=super().get_context_data(**kwargs); ctx['module_title']=self.module_title; return ctx
 
 @login_required
-def messages(request):
-    user = request.user
-    form = MessageForm(request.POST or None)
-    form.fields["recipient"].queryset = User.objects.exclude(pk=user.pk)
-    if request.method == "POST" and form.is_valid():
-        message = form.save(commit=False)
-        message.sender = user
-        message.save()
-        flash.success(request, "Message sent.")
-        return redirect("messages")
-
-    message_list = Message.objects.filter(Q(sender=user) | Q(recipient=user)).select_related(
-        "sender",
-        "recipient",
-    )[:20]
-    return render(request, "core/messages.html", {"message_list": message_list, "form": form})
+def messages_page(request):
+    if request.method=='POST':
+        form=MessageForm(request.POST,current_user=request.user)
+        if form.is_valid():
+            msg=form.save(commit=False); msg.sender=request.user; msg.save(); return redirect('messages_page')
+    else: form=MessageForm(current_user=request.user)
+    received=Message.objects.filter(recipient=request.user).select_related('sender')
+    sent=Message.objects.filter(sender=request.user).select_related('recipient')
+    Message.objects.filter(recipient=request.user,read_at__isnull=True).update(read_at=timezone.now())
+    return render(request,'core/messages.html',{'form':form,'received':received,'sent':sent})

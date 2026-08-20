@@ -1,70 +1,53 @@
 # LifeOps
 
-LifeOps is a Django full-stack dashboard for managing daily operations across school, work, money, wellness, meals, career planning, inventory, and shared messages.
+LifeOps is a multi-user personal operations dashboard built with Django. It combines daily planning, school/work requirements, budgeting, debt, habits, meals, career tracking, household inventory, and private messaging in one clean workspace.
 
-The project is designed as a portfolio-grade application: private user data, a demo account, realistic seed data, tests, and a roadmap that can grow into a serious product.
+## Highlights
 
-## Features in the MVP
+- Private per-user data with ownership-safe CRUD
+- Customizable dashboard widgets with visibility and ordering
+- Schedule, requirements, habits, budget, debt, meals, career, and inventory modules
+- Private direct messaging between users
+- Responsive enterprise-style sidebar UI
+- Realistic portfolio demo account and seed command
+- pytest ownership, privacy, CRUD, dashboard, and demo tests
+- SQLite for local development; architecture is ready for PostgreSQL
 
-- User login with private dashboard data
-- Public landing page and demo account flow
-- Work, school, and personal schedule tracking
-- Requirement tracking for assignments, bills, and tasks
-- Habit and streak tracking
-- Budget categories and debt overview
-- Meal and recipe planning
-- Job application tracking
-- Inventory tracking with low-stock counts
-- Front-end add, edit, and delete flows for dashboard modules
-- Customizable dashboard widgets with visibility and ordering controls
-- Simple user-to-user messages with a compose form
-- Admin panel for managing records
-- Seed command for demo data
-- Pytest coverage for core flows
-
-## Demo Account
-
-After setup, run the seed command and use:
+## Demo
 
 - Username: `demo`
 - Password: `DemoPass123!`
 
-## Tech Stack
+You can also use the **Open demo** button on the public landing page after running `seed_demo`.
 
-- Python 3.11+
-- Django 5.2
-- SQLite for local development
-- Pytest and pytest-django
-- Plain Django templates and CSS
-
-## Local Setup
+## Local setup
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate      # macOS/Linux
+# .venv\\Scripts\\activate    # Windows PowerShell
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver
 ```
 
-Open `http://127.0.0.1:8000`.
+Open `http://127.0.0.1:8000/`.
 
-## Run Tests
+## Tests
 
 ```bash
 pytest
-```
-
-With coverage:
-
-```bash
 coverage run -m pytest
 coverage report
 ```
 
-## Project Direction
+## Architecture
 
-The long-term goal is to become a calm command center for students, workers, and busy households. LifeOps should feel more like an official operations product than a toy dashboard: simple navigation, clear permissions, useful defaults, strong empty states, and reliable tests.
+The MVP deliberately uses one Django app, `core`, so reviewers can understand the project quickly. Domain models are user-owned and all update/delete querysets are filtered by `request.user`. When the project grows, the domains can be split into apps such as `finance`, `planning`, `career`, `wellness`, and `inventory`.
 
-See [ROADMAP.md](ROADMAP.md) for planned milestones.
+## Production direction
+
+Before deploying publicly, use environment-managed secrets, PostgreSQL, HTTPS, secure cookie settings, WhiteNoise or a CDN for static assets, and a production WSGI/ASGI server. Replace the automatic demo-login route with an isolated read-only demo or resettable demo environment if public writes are undesirable.
+
+See [ROADMAP.md](ROADMAP.md) and [docs/GITHUB_ISSUES.md](docs/GITHUB_ISSUES.md).

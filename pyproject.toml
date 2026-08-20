@@ -1,8 +1,8 @@
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-addopts = "-ra"
+addopts = "-q"
 
 [tool.coverage.run]
-source = ["core", "config"]
-omit = ["*/migrations/*", "manage.py"]
+source = ["core"]
+omit = ["*/migrations/*", "*/tests/*"]

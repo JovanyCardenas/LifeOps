@@ -1,45 +1,24 @@
 {% load static %}
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}LifeOps{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'core/css/app.css' %}">
-</head>
-<body>
-  <header class="topbar">
-    <a class="brand" href="{% url 'landing' %}">
-      <span class="brand-mark">L</span>
-      <span>LifeOps</span>
-    </a>
-    <nav class="nav">
-      {% if user.is_authenticated %}
-        <a href="{% url 'dashboard' %}">Dashboard</a>
-        <a href="{% url 'module_list' 'schedule' %}">Schedule</a>
-        <a href="{% url 'module_list' 'requirements' %}">Tasks</a>
-        <a href="{% url 'module_list' 'budget' %}">Finance</a>
-        <a href="{% url 'messages' %}">Messages</a>
-        <form action="{% url 'logout' %}" method="post">
-          {% csrf_token %}
-          <button class="link-button" type="submit">Log out</button>
-        </form>
-      {% else %}
-        <a href="{% url 'login' %}">Log in</a>
-        <a class="button button-secondary" href="{% url 'demo_login' %}">View demo</a>
-      {% endif %}
-    </nav>
-  </header>
-
-  <main>
-    {% if messages %}
-      <div class="flash-stack">
-        {% for message in messages %}
-          <div class="flash">{{ message }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-    {% block content %}{% endblock %}
-  </main>
-</body>
-</html>
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}LifeOps{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'core/css/app.css' %}">
+</head><body>
+{% if user.is_authenticated %}
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand"><span class="brand-mark">L</span><div><strong>LifeOps</strong><small>Personal operations</small></div></div>
+  <nav>
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <div class="nav-label">Planning</div>
+    <a href="{% url 'module_list' 'schedule' %}">Schedule</a><a href="{% url 'module_list' 'requirements' %}">Requirements</a><a href="{% url 'module_list' 'habits' %}">Habits</a>
+    <div class="nav-label">Life management</div>
+    <a href="{% url 'module_list' 'budget' %}">Budget</a><a href="{% url 'module_list' 'debt' %}">Debt</a><a href="{% url 'module_list' 'meals' %}">Meals</a><a href="{% url 'module_list' 'career' %}">Career</a><a href="{% url 'module_list' 'inventory' %}">Inventory</a>
+    <a href="{% url 'messages_page' %}">Messages</a><a href="{% url 'profile_settings' %}">Profile</a>
+  </nav>
+  <div class="sidebar-foot"><div class="user-chip"><span>{{ user.username|first|upper }}</span><div><strong>{{ user.username }}</strong><small>Private workspace</small></div></div><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link-button">Sign out</button></form></div>
+</aside>
+<main class="main"><header class="topbar"><div><button class="mobile-menu" onclick="document.body.classList.toggle('nav-open')">☰</button><span class="eyebrow">Life operations workspace</span></div><a class="top-action" href="{% url 'dashboard_settings' %}">Customize dashboard</a></header><div class="page-wrap">{% block content %}{% endblock %}</div></main>
+</div>
+{% else %}{% block public_content %}{% endblock %}{% endif %}
+</body></html>

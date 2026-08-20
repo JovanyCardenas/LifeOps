@@ -1,118 +1,44 @@
 from django import forms
+from django.contrib.auth import get_user_model
+from .models import *
 
-from .models import (
-    BudgetCategory,
-    DashboardWidget,
-    Debt,
-    Habit,
-    InventoryItem,
-    JobApplication,
-    MealPlan,
-    Message,
-    Requirement,
-    ScheduleEvent,
-)
+DT='%Y-%m-%dT%H:%M'
+class DateTimeInput(forms.DateTimeInput): input_type='datetime-local'
+class DateInput(forms.DateInput): input_type='date'
 
+class StyledModelForm(forms.ModelForm):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        for f in self.fields.values():
+            f.widget.attrs.setdefault('class','form-control')
 
-class BaseStyledModelForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            if isinstance(field.widget, forms.CheckboxInput):
-                continue
-            field.widget.attrs.setdefault("class", "field-control")
-
-
-class ScheduleEventForm(BaseStyledModelForm):
+class ScheduleEventForm(StyledModelForm):
     class Meta:
-        model = ScheduleEvent
-        fields = ["title", "category", "starts_at", "ends_at", "location"]
-        widgets = {
-            "starts_at": forms.DateTimeInput(
-                attrs={"type": "datetime-local"},
-                format="%Y-%m-%dT%H:%M",
-            ),
-            "ends_at": forms.DateTimeInput(
-                attrs={"type": "datetime-local"},
-                format="%Y-%m-%dT%H:%M",
-            ),
-        }
+        model=ScheduleEvent; exclude=['user']; widgets={'starts_at':DateTimeInput(format=DT),'ends_at':DateTimeInput(format=DT)}
+    def __init__(self,*a,**kw):
+        super().__init__(*a,**kw); self.fields['starts_at'].input_formats=[DT]; self.fields['ends_at'].input_formats=[DT]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["starts_at"].input_formats = ["%Y-%m-%dT%H:%M"]
-        self.fields["ends_at"].input_formats = ["%Y-%m-%dT%H:%M"]
-
-    def clean(self):
-        cleaned = super().clean()
-        starts_at = cleaned.get("starts_at")
-        ends_at = cleaned.get("ends_at")
-        if starts_at and ends_at and ends_at <= starts_at:
-            self.add_error("ends_at", "End time must be after start time.")
-        return cleaned
-
-
-class RequirementForm(BaseStyledModelForm):
+class RequirementForm(StyledModelForm):
     class Meta:
-        model = Requirement
-        fields = ["title", "category", "due_at", "completed", "notes"]
-        widgets = {
-            "due_at": forms.DateTimeInput(
-                attrs={"type": "datetime-local"},
-                format="%Y-%m-%dT%H:%M",
-            )
-        }
+        model=Requirement; exclude=['user']; widgets={'due_at':DateTimeInput(format=DT)}
+    def __init__(self,*a,**kw): super().__init__(*a,**kw); self.fields['due_at'].input_formats=[DT]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["due_at"].input_formats = ["%Y-%m-%dT%H:%M"]
+class HabitForm(StyledModelForm):
+    class Meta: model=Habit; exclude=['user']
+class BudgetCategoryForm(StyledModelForm):
+    class Meta: model=BudgetCategory; exclude=['user']
+class DebtForm(StyledModelForm):
+    class Meta: model=Debt; exclude=['user']
+class MealPlanForm(StyledModelForm):
+    class Meta: model=MealPlan; exclude=['user']; widgets={'meal_date':DateInput()}
+class JobApplicationForm(StyledModelForm):
+    class Meta: model=JobApplication; exclude=['user']; widgets={'deadline':DateInput()}
+class InventoryItemForm(StyledModelForm):
+    class Meta: model=InventoryItem; exclude=['user']
 
-
-class HabitForm(BaseStyledModelForm):
-    class Meta:
-        model = Habit
-        fields = ["name", "target_per_week", "current_streak"]
-
-
-class BudgetCategoryForm(BaseStyledModelForm):
-    class Meta:
-        model = BudgetCategory
-        fields = ["name", "monthly_limit", "current_spend"]
-
-
-class DebtForm(BaseStyledModelForm):
-    class Meta:
-        model = Debt
-        fields = ["name", "balance", "minimum_payment", "apr"]
-
-
-class MealPlanForm(BaseStyledModelForm):
-    class Meta:
-        model = MealPlan
-        fields = ["meal_date", "meal_type", "recipe_name", "protein_grams"]
-        widgets = {"meal_date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
-
-
-class JobApplicationForm(BaseStyledModelForm):
-    class Meta:
-        model = JobApplication
-        fields = ["company", "role", "status", "deadline", "notes"]
-        widgets = {"deadline": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
-
-
-class InventoryItemForm(BaseStyledModelForm):
-    class Meta:
-        model = InventoryItem
-        fields = ["name", "location", "quantity", "reorder_threshold"]
-
-
-class MessageForm(BaseStyledModelForm):
-    class Meta:
-        model = Message
-        fields = ["recipient", "body"]
-
-
-class DashboardWidgetForm(BaseStyledModelForm):
-    class Meta:
-        model = DashboardWidget
-        fields = ["visible", "position"]
+class MessageForm(forms.ModelForm):
+    class Meta: model=Message; fields=['recipient','body']; widgets={'body':forms.Textarea(attrs={'rows':4,'class':'form-control'})}
+    def __init__(self,*a,current_user=None,**kw):
+        super().__init__(*a,**kw)
+        self.fields['recipient'].queryset=get_user_model().objects.exclude(pk=getattr(current_user,'pk',None)).order_by('username')
+        self.fields['recipient'].widget.attrs['class']='form-control'

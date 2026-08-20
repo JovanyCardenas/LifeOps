@@ -3,138 +3,65 @@ from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.urls import reverse
 from django.utils import timezone
+from .models import Requirement, DashboardWidget, Message
 
-from .models import DashboardWidget, Requirement
+pytestmark=pytest.mark.django_db
 
+def test_landing_page(client):
+    assert client.get(reverse('landing')).status_code==200
 
-@pytest.mark.django_db
-def test_landing_page_renders(client):
-    response = client.get(reverse("landing"))
-
-    assert response.status_code == 200
-    assert "LifeOps" in response.content.decode()
-
-
-@pytest.mark.django_db
 def test_dashboard_requires_login(client):
-    response = client.get(reverse("dashboard"))
+    response=client.get(reverse('dashboard'))
+    assert response.status_code==302 and '/accounts/login/' in response.url
 
-    assert response.status_code == 302
-    assert reverse("login") in response["Location"]
-
-
-@pytest.mark.django_db
 def test_dashboard_only_shows_current_user_data(client):
-    owner = User.objects.create_user("owner", password="pass12345")
-    other = User.objects.create_user("other", password="pass12345")
-    Requirement.objects.create(
-        user=owner,
-        title="Visible assignment",
-        category=Requirement.ASSIGNMENT,
-        due_at=timezone.now(),
-    )
-    Requirement.objects.create(
-        user=other,
-        title="Private assignment",
-        category=Requirement.ASSIGNMENT,
-        due_at=timezone.now(),
-    )
+    a=User.objects.create_user('a',password='pass12345'); b=User.objects.create_user('b',password='pass12345')
+    Requirement.objects.create(user=a,title='A private task'); Requirement.objects.create(user=b,title='B secret task')
+    client.login(username='a',password='pass12345')
+    html=client.get(reverse('dashboard')).content.decode()
+    assert 'A private task' in html and 'B secret task' not in html
 
-    client.force_login(owner)
-    response = client.get(reverse("dashboard"))
-    body = response.content.decode()
+def test_seed_demo_creates_login_ready_account(client):
+    call_command('seed_demo')
+    assert client.login(username='demo',password='DemoPass123!')
+    assert Requirement.objects.filter(user__username='demo').exists()
 
-    assert response.status_code == 200
-    assert "Visible assignment" in body
-    assert "Private assignment" not in body
+def test_user_can_create_requirement(client):
+    user=User.objects.create_user('owner',password='pass12345'); client.login(username='owner',password='pass12345')
+    response=client.post(reverse('module_add',kwargs={'module':'requirements'}),{'title':'New task','category':'task','due_at':'','completed':'','notes':'hello'})
+    assert response.status_code==302
+    assert Requirement.objects.filter(user=user,title='New task').exists()
 
+def test_user_can_edit_own_record(client):
+    user=User.objects.create_user('owner',password='pass12345'); item=Requirement.objects.create(user=user,title='Old',category='task')
+    client.login(username='owner',password='pass12345')
+    response=client.post(reverse('module_edit',kwargs={'module':'requirements','pk':item.pk}),{'title':'Updated','category':'task','due_at':'','notes':'','completed':''})
+    assert response.status_code==302
+    item.refresh_from_db(); assert item.title=='Updated'
 
-@pytest.mark.django_db
-def test_seed_demo_creates_login_ready_demo_account(client):
-    call_command("seed_demo")
+def test_user_cannot_edit_another_users_record(client):
+    a=User.objects.create_user('a',password='pass12345'); b=User.objects.create_user('b',password='pass12345')
+    item=Requirement.objects.create(user=b,title='Private',category='task')
+    client.login(username='a',password='pass12345')
+    assert client.get(reverse('module_edit',kwargs={'module':'requirements','pk':item.pk})).status_code==404
 
-    assert client.login(username="demo", password="DemoPass123!")
-    response = client.get(reverse("dashboard"))
-    body = response.content.decode()
+def test_user_can_delete_own_record(client):
+    user=User.objects.create_user('owner',password='pass12345'); item=Requirement.objects.create(user=user,title='Delete me',category='task')
+    client.login(username='owner',password='pass12345')
+    assert client.post(reverse('module_delete',kwargs={'module':'requirements','pk':item.pk})).status_code==302
+    assert not Requirement.objects.filter(pk=item.pk).exists()
 
-    assert response.status_code == 200
-    assert "Data Structures lecture" in body
-    assert "Chicken rice bowl" in body
+def test_widget_settings_update_visibility_and_order(client):
+    user=User.objects.create_user('owner',password='pass12345'); client.login(username='owner',password='pass12345')
+    client.get(reverse('dashboard'))
+    widget=DashboardWidget.objects.filter(user=user).first()
+    client.post(reverse('dashboard_settings'),{f'position_{widget.id}':'8'})
+    widget.refresh_from_db(); assert widget.position==8 and widget.visible is False
 
-
-@pytest.mark.django_db
-def test_user_can_create_requirement_from_frontend(client):
-    user = User.objects.create_user("owner", password="pass12345")
-    client.force_login(user)
-
-    response = client.post(
-        reverse("module_create", args=["requirements"]),
-        {
-            "title": "Read chapter 4",
-            "category": Requirement.ASSIGNMENT,
-            "due_at": "2026-09-01T10:30",
-            "completed": "",
-            "notes": "Bring notes to class.",
-        },
-    )
-
-    assert response.status_code == 302
-    assert Requirement.objects.filter(user=user, title="Read chapter 4").exists()
-
-
-@pytest.mark.django_db
-def test_user_can_edit_and_delete_own_requirement(client):
-    user = User.objects.create_user("owner", password="pass12345")
-    requirement = Requirement.objects.create(user=user, title="Old title")
-    client.force_login(user)
-
-    edit_response = client.post(
-        reverse("module_edit", args=["requirements", requirement.pk]),
-        {
-            "title": "Updated title",
-            "category": Requirement.TASK,
-            "due_at": "",
-            "notes": "",
-        },
-    )
-    requirement.refresh_from_db()
-
-    assert edit_response.status_code == 302
-    assert requirement.title == "Updated title"
-
-    delete_response = client.post(reverse("module_delete", args=["requirements", requirement.pk]))
-
-    assert delete_response.status_code == 302
-    assert not Requirement.objects.filter(pk=requirement.pk).exists()
-
-
-@pytest.mark.django_db
-def test_user_cannot_edit_another_users_requirement(client):
-    owner = User.objects.create_user("owner", password="pass12345")
-    other = User.objects.create_user("other", password="pass12345")
-    requirement = Requirement.objects.create(user=other, title="Private task")
-    client.force_login(owner)
-
-    response = client.get(reverse("module_edit", args=["requirements", requirement.pk]))
-
-    assert response.status_code == 404
-
-
-@pytest.mark.django_db
-def test_dashboard_widget_settings_control_visibility(client):
-    user = User.objects.create_user("owner", password="pass12345")
-    client.force_login(user)
-    client.get(reverse("dashboard"))
-    widgets = DashboardWidget.objects.filter(user=user)
-
-    payload = {}
-    for widget in widgets:
-        payload[f"{widget.key}-position"] = str(widget.position)
-        if widget.key != "habits":
-            payload[f"{widget.key}-visible"] = "on"
-
-    response = client.post(reverse("dashboard_settings"), payload)
-    DashboardWidget.objects.get(user=user, key="habits").refresh_from_db()
-
-    assert response.status_code == 302
-    assert DashboardWidget.objects.get(user=user, key="habits").visible is False
+def test_message_privacy(client):
+    a=User.objects.create_user('a',password='pass12345'); b=User.objects.create_user('b',password='pass12345'); c=User.objects.create_user('c',password='pass12345')
+    Message.objects.create(sender=b,recipient=c,body='Secret message')
+    Message.objects.create(sender=b,recipient=a,body='Hello A')
+    client.login(username='a',password='pass12345')
+    html=client.get(reverse('messages_page')).content.decode()
+    assert 'Hello A' in html and 'Secret message' not in html

@@ -1,64 +1,24 @@
-# LifeOps Agent Guide
+exit# LifeOps Development Context
 
-## Product Summary
+LifeOps is a serious multi-user personal operations application, not a toy dashboard.
 
-LifeOps is a full-stack Django application for managing daily life operations. It is aimed at students, workers, and households that need one private dashboard for schedules, assignments, habits, finances, debt, meals, job applications, inventory, and collaboration.
+## Non-negotiable rules
 
-The application should feel like an official enterprise productivity product: calm, useful, simple, and trustworthy. Avoid making the UI look like a generic AI-generated landing page. Prefer practical workflows, clean information hierarchy, compact dashboards, clear tables, and helpful empty states.
+1. Every private domain record must be scoped to the authenticated user.
+2. Never fetch an editable/deletable private object from an unscoped model queryset.
+3. Add ownership/privacy tests whenever a new private model or route is introduced.
+4. Prefer Django conventions and server-rendered forms before adding client-side complexity.
+5. Keep visual design compact, calm, accessible, and professional.
+6. Avoid decorative gradients, excessive card nesting, and landing-page-style UI inside the application.
+7. New features should include empty states, clear actions, validation, and responsive behavior.
+8. Seed data should make the demo account realistic while containing no real personal information.
+9. Keep the MVP understandable; split apps only when domains become large enough to justify it.
+10. Do not commit secrets, the SQLite database, virtual environments, coverage output, or generated static files.
 
-## Current Architecture
-
-- `config/` contains Django project settings and root URLs.
-- `core/` contains the MVP models, views, templates, static CSS, admin registrations, tests, and management commands.
-- `core/models.py` defines user-owned records for the first product modules.
-- `core/templates/core/` contains the public landing page, dashboard, messages view, and base layout.
-- `core/management/commands/seed_demo.py` creates the demo account and realistic starter data.
-- `ROADMAP.md` tracks planned milestones and should be converted into GitHub issues.
-
-## Development Principles
-
-- Every private record must be scoped to the authenticated user unless it is explicitly shared.
-- Add tests for ownership, permissions, and validation when adding a new feature.
-- Keep UI simple and professional. Use cards for repeated dashboard modules, not for every page section.
-- Prefer Django conventions before adding extra packages.
-- Keep the MVP modular, but do not split into many Django apps until a module has enough behavior to justify it.
-- Demo data should stay realistic and safe to expose publicly.
-
-## Near-Term Build Order
-
-1. Add CRUD pages for requirements and schedule events.
-2. Add registration and profile editing.
-3. Add CRUD pages for budgets, debts, habits, meals, job applications, and inventory.
-4. Add message compose and read-state behavior.
-5. Add deployment settings and publish a public demo.
-6. Add screenshots and a short case study to the README.
-
-## Testing Expectations
-
-Run:
+## Verification before merging
 
 ```bash
+python manage.py check
+python manage.py makemigrations --check
 pytest
-```
-
-For larger changes, also run:
-
-```bash
-coverage run -m pytest
-coverage report
-```
-
-Do not merge a feature that lets users view or mutate another user's private data unless that behavior is part of an explicit sharing feature.
-
-## Demo Account
-
-Use:
-
-- Username: `demo`
-- Password: `DemoPass123!`
-
-Refresh demo data with:
-
-```bash
-python manage.py seed_demo
 ```

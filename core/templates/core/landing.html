@@ -1,58 +1,6 @@
-{% extends "core/base.html" %}
-
-{% block title %}LifeOps | Daily Operations Dashboard{% endblock %}
-
-{% block content %}
-<section class="hero">
-  <div class="hero-copy">
-    <p class="eyebrow">Personal operations for school, work, and life</p>
-    <h1>Manage the moving parts of your day from one private workspace.</h1>
-    <p>
-      LifeOps brings schedules, assignments, habits, budgets, meals, job applications,
-      inventory, and messages into one calm dashboard built for real daily use.
-    </p>
-    <div class="actions">
-      <a class="button" href="{% url 'demo_login' %}">Explore demo account</a>
-      <a class="button button-secondary" href="{% url 'login' %}">Log in</a>
-    </div>
-  </div>
-  <div class="hero-panel" aria-label="Product preview">
-    <div class="panel-header">
-      <span>Today</span>
-      <strong>Operations Health</strong>
-    </div>
-    <div class="metric-grid">
-      <div><strong>4</strong><span>Requirements</span></div>
-      <div><strong>$820</strong><span>Budget left</span></div>
-      <div><strong>12</strong><span>Day streak</span></div>
-      <div><strong>3</strong><span>Applications</span></div>
-    </div>
-    <div class="timeline">
-      <span></span>
-      <p>8:30 AM · Software Engineering lecture</p>
-      <span></span>
-      <p>1:00 PM · Internship interview prep</p>
-      <span></span>
-      <p>6:15 PM · Gym: upper body</p>
-    </div>
-  </div>
-</section>
-
-<section class="module-band">
-  <h2>Built as a portfolio-ready full-stack project</h2>
-  <div class="module-grid">
-    <article>
-      <h3>Private by default</h3>
-      <p>Every dashboard record belongs to a user, with a demo account for reviewers.</p>
-    </article>
-    <article>
-      <h3>Modular product surface</h3>
-      <p>Finance, wellness, school, career, home, and messaging can grow independently.</p>
-    </article>
-    <article>
-      <h3>Tested foundation</h3>
-      <p>The project starts with authentication, privacy, view, and seed-data tests.</p>
-    </article>
-  </div>
-</section>
+{% extends 'core/base.html' %}{% block title %}LifeOps — Organize daily life{% endblock %}
+{% block public_content %}
+<div class="public-shell"><header class="public-nav"><div class="brand"><span class="brand-mark">L</span><div><strong>LifeOps</strong><small>Personal operations</small></div></div><div><a class="btn ghost" href="{% url 'signup' %}">Create account</a><a class="btn ghost" href="{% url 'login' %}">Sign in</a><a class="btn primary" href="{% url 'demo_login' %}">Open demo</a></div></header>
+<section class="hero"><div><span class="eyebrow">One workspace for daily operations</span><h1>Manage school, work, money, habits, meals, career, and home life in one private dashboard.</h1><p>LifeOps is a multi-user productivity system designed around practical daily workflows. Every account gets its own private workspace, customizable dashboard, and focused management tools.</p><div class="hero-actions"><a class="btn primary large" href="{% url 'demo_login' %}">Explore the demo</a><a class="btn ghost large" href="{% url 'login' %}">Sign in</a></div></div><div class="hero-panel"><div class="mock-header"><span></span><span></span><span></span></div><div class="mock-stats"><div><small>Open requirements</small><strong>6</strong></div><div><small>Monthly spend</small><strong>$842</strong></div><div><small>Applications</small><strong>5</strong></div></div><div class="mock-row"><b>Today</b><span>Software Engineering lecture · 10:30 AM</span></div><div class="mock-row"><b>Priority</b><span>Submit project milestone · Friday</span></div><div class="mock-row"><b>Career</b><span>IT Support Technician · Interviewing</span></div></div></section>
+<section class="feature-strip"><div><strong>Private by default</strong><span>User-owned records and permission-safe CRUD.</span></div><div><strong>Built for real workflows</strong><span>Planning, finances, meals, career, inventory, and more.</span></div><div><strong>Portfolio ready</strong><span>Tests, seed data, documentation, and clean Django conventions.</span></div></section></div>
 {% endblock %}
