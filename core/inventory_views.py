@@ -47,12 +47,11 @@ class InventoryEditor(OwnedQuerysetMixin, FormView):
                 values=values,
             )
         except ValidationError as error:
-            # The existing form template displays errors attached to fields.
-            form.add_error("quantity", error)
+            for message in error.messages:
+                form.add_error(None, message)
             return self.form_invalid(form)
-        return HttpResponseRedirect(self.request.path) if False else redirect(
-            "module_list", module="inventory"
-        )
+
+        return redirect("module_list", module="inventory")
 
 
 @login_required

@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
+from django.core.validators import MinValueValidator
 
 User = get_user_model()
 
@@ -89,7 +90,12 @@ class JobApplication(OwnedModel):
 class InventoryItem(OwnedModel):
     name = models.CharField(max_length=160)
     location = models.CharField(max_length=160, blank=True)
-    quantity = models.DecimalField(max_digits=10, decimal_places=3, default=1)
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=1,
+        default=1,
+        validators=[MinValueValidator(0)],
+    )
     reorder_threshold = models.PositiveIntegerField(default=0)
 
     is_food = models.BooleanField("Food item", default=False)
@@ -108,6 +114,14 @@ class InventoryItem(OwnedModel):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(quantity__gte=0),
+                name="inventory_quantity_nonnegative",
+            ),
+        ]
 
 
 class InventoryChange(OwnedModel):
