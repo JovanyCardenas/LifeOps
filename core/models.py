@@ -151,12 +151,15 @@ class InventoryChange(OwnedModel):
 class InventoryAccessToken(OwnedModel):
     label = models.CharField(max_length=60)
     token_hash = models.CharField(max_length=64, unique=True, editable=False)
-    can_write = models.BooleanField(default=False)
+    scopes = models.JSONField(default=list, blank=True)
     last_used_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at", "-pk"]
+
+    def allows(self, scope):
+        return scope in self.scopes
 
     def __str__(self):
         return self.label

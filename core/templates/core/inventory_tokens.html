@@ -3,69 +3,263 @@
 {% block title %}Inventory Access · LifeOps{% endblock %}
 
 {% block content %}
-<div class="narrow">
-  <div class="page-heading">
+<style>
+  .inventory-access {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
+  .inventory-access .page-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .inventory-access .access-stack {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .inventory-access .access-panel {
+    padding: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  .inventory-access .access-panel h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1.125rem;
+  }
+
+  .inventory-access .access-help {
+    margin: 0 0 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .inventory-access .access-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .inventory-access .access-form .field,
+  .inventory-access .access-form .form-actions {
+    margin: 0;
+  }
+
+  .inventory-access .access-credentials {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .inventory-access .access-credentials input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, monospace;
+    font-size: 0.875rem;
+  }
+
+  .inventory-access .access-grid {
+    overflow-x: auto;
+  }
+
+  .inventory-access .access-grid table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .inventory-access .access-grid th,
+  .inventory-access .access-grid td {
+    padding: 0.55rem 0.65rem;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+  }
+
+  .inventory-access .access-grid th:first-child {
+    text-align: left;
+  }
+
+  .inventory-access .access-grid tbody th {
+    font-weight: 500;
+  }
+
+  .inventory-access .access-grid th:not(:first-child),
+  .inventory-access .access-grid td {
+    width: 4.5rem;
+    text-align: center;
+  }
+
+  .inventory-access .access-grid input[type="checkbox"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    vertical-align: middle;
+    cursor: pointer;
+  }
+
+  .inventory-access .access-token {
+    padding-block: 1rem;
+    border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+  }
+
+  .inventory-access .access-token:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .inventory-access .access-token h3 {
+    margin: 0;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .inventory-access .access-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  .inventory-access .access-details {
+    margin-top: 0.75rem;
+  }
+
+  .inventory-access .access-details summary {
+    width: fit-content;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .inventory-access .access-details[open] summary {
+    margin-bottom: 0.85rem;
+  }
+
+  .inventory-access .access-revoke {
+    margin-top: 0.85rem;
+  }
+
+  .inventory-access .access-empty {
+    margin: 0.75rem 0 0;
+    font-size: 0.875rem;
+  }
+</style>
+
+<div class="inventory-access">
+  <header class="page-heading">
     <div>
       <h1>Inventory Access</h1>
-      <p>Create a connection for {{ request.user.get_username }}.</p>
+      <p>Manage tokens and permissions for {{ request.user.get_username }}.</p>
     </div>
     <a class="btn ghost" href="{% url 'profile_settings' %}">Back to profile</a>
-  </div>
+  </header>
 
-  {% if raw_token %}
-    <div class="panel form-panel">
-      <h2>Copy your new token</h2>
-      <p>LifeOps shows it once. Paste it into the Windows connection prompt.</p>
-      <label for="api-url">API address</label>
-      <input id="api-url" value="{{ api_url }}" readonly>
-      <label for="new-token">Token</label>
-      <input id="new-token" value="{{ raw_token }}" readonly autocomplete="off">
-    </div>
-  {% endif %}
+  <div class="access-stack">
+    {% if raw_token %}
+      <section class="panel form-panel access-panel"
+               aria-labelledby="new-token-heading">
+        <h2 id="new-token-heading">Copy your new token</h2>
+        <p class="access-help">
+          LifeOps shows this token once. Copy the API address and token into
+          your Windows connection prompt.
+        </p>
 
-  <div class="panel form-panel">
-    <h2>Create a token</h2>
-    {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
-    <form method="post">
-      {% csrf_token %}
-      <div class="field">
-        <label for="token-label">Name</label>
-        <input id="token-label" name="label" maxlength="60" required
-               placeholder="Desktop Commander — Personal">
-      </div>
-      <div class="field">
-        <label for="token-mode">Permission</label>
-        <select id="token-mode" name="mode">
-          <option value="read">Read only</option>
-          <option value="write">Read and write</option>
-        </select>
-      </div>
-      <button class="btn primary" type="submit">Create token</button>
-    </form>
-  </div>
+        <div class="access-credentials">
+          <div class="field">
+            <label for="api-url">API address</label>
+            <input id="api-url" value="{{ api_url }}" readonly spellcheck="false">
+          </div>
 
-  <div class="panel form-panel">
-    <h2>Your tokens</h2>
-    {% for token in tokens %}
-      <div class="record-row">
-        <div class="record-main">
-          <strong>{{ token.label }}</strong>
-          <span>{% if token.can_write %}Read and write{% else %}Read only{% endif %}</span>
-          <span>Created {{ token.created_at|date:"M j, Y g:i A" }}</span>
-          <span>Last used {{ token.last_used_at|date:"M j, Y g:i A"|default:"Never" }}</span>
+          <div class="field">
+            <label for="new-token">Token</label>
+            <input id="new-token" value="{{ raw_token }}" readonly
+                   autocomplete="off" spellcheck="false">
+          </div>
         </div>
-        {% if token.revoked_at %}
-          <span>Revoked {{ token.revoked_at|date:"M j, Y" }}</span>
-        {% else %}
-          <form method="post" action="{% url 'inventory_token_revoke' token.pk %}">
-            {% csrf_token %}
-            <button class="btn danger" type="submit">Revoke</button>
-          </form>
-        {% endif %}
-      </div>
-    {% empty %}
-      <p>No inventory tokens yet.</p>
-    {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="panel form-panel access-panel"
+             aria-labelledby="create-token-heading">
+      <h2 id="create-token-heading">Create a token</h2>
+      <p class="access-help">
+        Give the connection a name and choose which sections it can access.
+      </p>
+
+      {% if error %}
+        <p class="field-error" role="alert">{{ error }}</p>
+      {% endif %}
+
+      <form class="access-form" method="post">
+        {% csrf_token %}
+
+        <div class="field">
+          <label for="token-label">Connection name</label>
+          <input id="token-label" name="label" maxlength="60" required
+                 placeholder="Desktop Commander - Personal">
+        </div>
+
+        <div>
+          <p class="access-help">
+            Write includes read access. Only Inventory is connected today.
+            Other permissions take effect as their endpoints are added.
+          </p>
+
+          <div class="access-grid">
+            {% include 'core/token_permission_grid.html' with rows=create_rows only %}
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Create token</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel form-panel access-panel"
+             aria-labelledby="saved-tokens-heading">
+      <h2 id="saved-tokens-heading">Your tokens</h2>
+
+      {% for entry in token_entries %}
+        {% with token=entry.token %}
+          <article class="access-token">
+            <h3>{{ token.label }}</h3>
+            <p class="access-meta">
+              <span>Created {{ token.created_at|date:"M j, Y g:i A" }}</span>
+              <span>Last used {{ token.last_used_at|date:"M j, Y g:i A"|default:"Never" }}</span>
+              {% if token.revoked_at %}
+                <span>Revoked {{ token.revoked_at|date:"M j, Y g:i A" }}</span>
+              {% endif %}
+            </p>
+
+            {% if not token.revoked_at %}
+              <details class="access-details">
+                <summary>Edit permissions</summary>
+
+                <form class="access-form" method="post"
+                      action="{% url 'inventory_token_permissions' token.pk %}">
+                  {% csrf_token %}
+
+                  <div class="access-grid">
+                    {% include 'core/token_permission_grid.html' with rows=entry.rows only %}
+                  </div>
+
+                  <div class="form-actions">
+                    <button class="btn primary" type="submit">Save permissions</button>
+                  </div>
+                </form>
+
+                <form class="access-revoke" method="post"
+                      action="{% url 'inventory_token_revoke' token.pk %}">
+                  {% csrf_token %}
+                  <button class="btn danger" type="submit">Revoke token</button>
+                </form>
+              </details>
+            {% endif %}
+          </article>
+        {% endwith %}
+      {% empty %}
+        <p class="access-empty">No tokens yet.</p>
+      {% endfor %}
+    </section>
   </div>
 </div>
 {% endblock %}

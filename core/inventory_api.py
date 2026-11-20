@@ -59,6 +59,9 @@ def inventory_list(request):
         response["WWW-Authenticate"] = "Bearer"
         return response
 
+    if not access.allows("inventory:read"):
+        return inventory_error("This token cannot read inventory.", 403)
+
     items = (
         InventoryItem.objects.filter(
             user_id=owner_id,
@@ -75,7 +78,8 @@ def inventory_list(request):
 
     return JsonResponse({
         "account": access.user.get_username(),
-        "can_write": access.can_write,
+        "can_write": access.allows("inventory:write"),
+        "scopes": access.scopes,
         "items": list(items),
     })
 
@@ -117,8 +121,8 @@ def inventory_write(request):
         response["WWW-Authenticate"] = "Bearer"
         return response
 
-    if not access.can_write:
-        return inventory_error("This token is read only.", 403)
+    if not access.allows("inventory:write"):
+        return inventory_error("This token cannot write inventory.", 403)
 
     owner_id = access.user_id
     if owner_id is None:

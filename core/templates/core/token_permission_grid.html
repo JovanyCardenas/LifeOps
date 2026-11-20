@@ -1,0 +1,26 @@
+<table>
+  <thead>
+    <tr>
+      <th scope="col">Section</th>
+      <th scope="col">Read</th>
+      <th scope="col">Write</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr>
+        <th scope="row">{{ row.label }}</th>
+        <td>
+          <input type="checkbox" name="{{ row.key }}_read"
+                 aria-label="Read {{ row.label }}"
+                 {% if row.read %}checked{% endif %}>
+        </td>
+        <td>
+          <input type="checkbox" name="{{ row.key }}_write"
+                 aria-label="Write {{ row.label }}"
+                 {% if row.write %}checked{% endif %}>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

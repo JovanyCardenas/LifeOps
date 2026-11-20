@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
+from .access_scopes import permission_rows, scopes_from_form
 
 from .models import InventoryAccessToken
 
@@ -25,28 +26,41 @@ def inventory_tokens(request):
     check_token_settings_access(request.user)
     raw_token = None
     error = None
+    selected_scopes = ["inventory:read"]
 
     if request.method == "POST":
         label = request.POST.get("label", "").strip()
-        mode = request.POST.get("mode")
-        if not 1 <= len(label) <= 60 or mode not in {"read", "write"}:
-            error = "Enter a name up to 60 characters and select a permission."
+        selected_scopes = scopes_from_form(request.POST)
+
+        if not 1 <= len(label) <= 60:
+            error = "Enter a token name up to 60 characters."
+        elif not selected_scopes:
+            error = "Select at least one permission to create a token."
         else:
             raw_token = secrets.token_urlsafe(32)
             InventoryAccessToken.objects.create(
                 user=request.user,
                 label=label,
                 token_hash=hashlib.sha256(raw_token.encode("ascii")).hexdigest(),
-                can_write=(mode == "write"),
+                scopes=selected_scopes,
             )
 
-    return render(request, "core/inventory_tokens.html", {
-        "tokens": InventoryAccessToken.objects.filter(user=request.user),
-        "raw_token": raw_token,
-        "error": error,
-        "api_url": request.build_absolute_uri(reverse("inventory_api_list")),
-    }, status=400 if error else 200)
-
+    tokens = InventoryAccessToken.objects.filter(user=request.user)
+    return render(
+        request,
+        "core/inventory_tokens.html",
+        {
+            "token_entries": [
+                {"token": token, "rows": permission_rows(token.scopes)}
+                for token in tokens
+            ],
+            "create_rows": permission_rows(selected_scopes),
+            "raw_token": raw_token,
+            "error": error,
+            "api_url": request.build_absolute_uri(reverse("inventory_api_list")),
+        },
+        status=400 if error else 200,
+    )
 
 @login_required
 @require_POST
@@ -59,4 +73,23 @@ def revoke_inventory_token(request, pk):
     ).update(revoked_at=timezone.now())
     if not updated:
         raise Http404
+    return redirect("inventory_tokens")
+
+@login_required
+@require_POST
+def update_inventory_token_permissions(request, pk):
+    check_token_settings_access(request.user)
+
+    updated = InventoryAccessToken.objects.filter(
+        user=request.user,
+        pk=pk,
+        revoked_at__isnull=True,
+    ).update(
+        scopes=scopes_from_form(request.POST),
+        updated_at=timezone.now(),
+    )
+
+    if not updated:
+        raise Http404
+
     return redirect("inventory_tokens")

@@ -34,6 +34,12 @@ urlpatterns=[
   name="inventory_token_revoke",
  ),
 
+ path(
+  "profile/inventory-access/<int:pk>/permissions/",
+  inventory_token_views.update_inventory_token_permissions,
+  name="inventory_token_permissions",
+ ),
+
  path('<str:module>/',views.ModuleListView.as_view(),name='module_list'),
  path('<str:module>/add/',views.ModuleCreateView.as_view(),name='module_add'),
  path('<str:module>/<int:pk>/edit/',views.ModuleUpdateView.as_view(),name='module_edit'),
