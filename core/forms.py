@@ -33,8 +33,40 @@ class MealPlanForm(StyledModelForm):
     class Meta: model=MealPlan; exclude=['user']; widgets={'meal_date':DateInput()}
 class JobApplicationForm(StyledModelForm):
     class Meta: model=JobApplication; exclude=['user']; widgets={'deadline':DateInput()}
+
 class InventoryItemForm(StyledModelForm):
-    class Meta: model=InventoryItem; exclude=['user']
+    revision = forms.IntegerField(required=False, widget=forms.HiddenInput)
+
+    class Meta:
+        model = InventoryItem
+        fields = [
+            "name",
+            "location",
+            "quantity",
+            "reorder_threshold",
+            "is_food",
+            "unit",
+            "printed_date",
+            "opened_on",
+            "cooked_on",
+            "frozen_on",
+        ]
+        widgets = {
+            field: forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"})
+            for field in ("printed_date", "opened_on", "cooked_on", "frozen_on")
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["revision"].required = True
+            self.initial["revision"] = self.instance.revision
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data["quantity"]
+        if quantity < 0:
+            raise forms.ValidationError("Quantity must be zero or more.")
+        return quantity
 
 class MessageForm(forms.ModelForm):
     class Meta: model=Message; fields=['recipient','body']; widgets={'body':forms.Textarea(attrs={'rows':4,'class':'form-control'})}

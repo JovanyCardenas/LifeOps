@@ -87,13 +87,50 @@ class JobApplication(OwnedModel):
     def __str__(self): return f'{self.company} — {self.role}'
 
 class InventoryItem(OwnedModel):
-    name=models.CharField(max_length=160)
-    location=models.CharField(max_length=160,blank=True)
-    quantity=models.PositiveIntegerField(default=1)
-    reorder_threshold=models.PositiveIntegerField(default=0)
+    name = models.CharField(max_length=160)
+    location = models.CharField(max_length=160, blank=True)
+    quantity = models.DecimalField(max_digits=10, decimal_places=3, default=1)
+    reorder_threshold = models.PositiveIntegerField(default=0)
+
+    is_food = models.BooleanField("Food item", default=False)
+    unit = models.CharField(max_length=32, default="count")
+    printed_date = models.DateField(blank=True, null=True)
+    opened_on = models.DateField(blank=True, null=True)
+    cooked_on = models.DateField(blank=True, null=True)
+    frozen_on = models.DateField(blank=True, null=True)
+
+    revision = models.PositiveIntegerField(default=0)
+    archived = models.BooleanField(default=False)
+
     @property
-    def low_stock(self): return self.quantity <= self.reorder_threshold
-    def __str__(self): return self.name
+    def low_stock(self):
+        return self.quantity <= self.reorder_threshold
+
+    def __str__(self):
+        return self.name
+
+
+class InventoryChange(OwnedModel):
+    item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.PROTECT,
+        related_name="changes",
+    )
+    source = models.CharField(max_length=32)
+    action = models.CharField(max_length=16)
+    before = models.JSONField(default=dict)
+    after = models.JSONField(default=dict)
+    item_revision = models.PositiveIntegerField()
+    undoes = models.OneToOneField(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="reversal",
+    )
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
 
 class Message(models.Model):
     sender=models.ForeignKey(User,on_delete=models.CASCADE,related_name='sent_messages')

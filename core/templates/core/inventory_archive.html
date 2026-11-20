@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% block content %}
+<div class="narrow">
+  <div class="panel form-panel">
+    <h1>Archive {{ item.name }}?</h1>
+    <p>You can undo this from Inventory Activity.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="revision" value="{{ item.revision }}">
+      <button class="btn danger" type="submit">Archive item</button>
+      <a href="{% url 'module_list' 'inventory' %}">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

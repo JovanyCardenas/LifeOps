@@ -1,0 +1,38 @@
+{% extends "core/base.html" %}
+{% block title %}Inventory Activity · LifeOps{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>Inventory Activity</h1>
+  <a class="btn ghost" href="{% url 'module_list' 'inventory' %}">
+    Back to inventory
+  </a>
+</div>
+
+<div class="panel">
+  {% for change in changes %}
+    <div class="record-row">
+      <div class="record-main">
+        <strong>{{ change.action|title }} · {{ change.after.name }}</strong>
+        <span>{{ change.created_at|date:"M j, Y g:i A" }} · {{ change.source }}</span>
+        <span>
+          Quantity: {{ change.before.quantity|default_if_none:"—" }}
+          → {{ change.after.quantity }} {{ change.after.unit }}
+        </span>
+        <details>
+          <summary>Change details</summary>
+          <p>Before: {{ change.before }}</p>
+          <p>After: {{ change.after }}</p>
+        </details>
+      </div>
+      {% if change.action != "undo" and not change.reversal and change.item_revision == change.item.revision %}
+        <form method="post" action="{% url 'inventory_undo' change.pk %}">
+          {% csrf_token %}
+          <button class="btn ghost" type="submit">Undo</button>
+        </form>
+      {% endif %}
+    </div>
+  {% empty %}
+    <p>No inventory changes yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -79,7 +79,7 @@ def dashboard(request):
       'debt': Debt.objects.filter(user=request.user).order_by('-balance')[:5],
       'meals': MealPlan.objects.filter(user=request.user).order_by('meal_date')[:5],
       'career': JobApplication.objects.filter(user=request.user)[:5],
-      'inventory': InventoryItem.objects.filter(user=request.user).order_by('quantity')[:5],
+      'inventory': InventoryItem.objects.filter(user=request.user, archived=False).order_by('quantity')[:5],
       'messages': Message.objects.filter(Q(sender=request.user)|Q(recipient=request.user))[:5],
     }
     widget_payload=[{'key':w.key,'label':labels.get(w.key,w.key.title()),'items':data.get(w.key,[])} for w in widgets]
@@ -122,6 +122,11 @@ class OwnedCreateMixin(LoginRequiredMixin):
 class ModuleListView(OwnedQuerysetMixin,ListView):
     template_name='core/module_list.html'
     context_object_name='items'
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.kwargs["module"] == "inventory":
+            queryset = queryset.filter(archived=False)
+        return queryset
     def get_context_data(self,**kwargs):
         ctx=super().get_context_data(**kwargs)
         ctx.update(module_key=self.kwargs['module'],module_title=MODULES[self.kwargs['module']][2])
@@ -156,11 +161,12 @@ class ModuleUpdateView(OwnedQuerysetMixin,UpdateView):
 
 class ModuleDeleteView(OwnedQuerysetMixin,DeleteView):
     template_name='core/confirm_delete.html'
-    def dispatch(self,request,*args,**kwargs):
-        key=kwargs['module']
-        if key not in MODULES: raise Http404
-        self.model,self.form_class,self.module_title,_=MODULES[key]
-        return super().dispatch(request,*args,**kwargs)
+    def dispatch(self, request, *args, **kwargs):
+        key = kwargs["module"]
+        if key not in MODULES:
+            raise Http404
+        self.model, _, self.module_title, _ = MODULES[key]
+        return super().dispatch(request, *args, **kwargs)
     def get_success_url(self): return reverse('module_list',kwargs={'module':self.kwargs['module']})
     def get_context_data(self,**kwargs):
         ctx=super().get_context_data(**kwargs); ctx['module_title']=self.module_title; return ctx
