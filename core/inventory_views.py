@@ -4,7 +4,7 @@ from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.generic import FormView
-
+from django.core.exceptions import ValidationError
 from .forms import InventoryItemForm
 from .inventory_service import change_inventory
 from .models import InventoryChange, InventoryItem
@@ -38,6 +38,7 @@ class InventoryEditor(OwnedQuerysetMixin, FormView):
         values = form.cleaned_data.copy()
         revision = values.pop("revision")
         item_id = self.kwargs.get("pk")
+
         try:
             change_inventory(
                 user=self.request.user,

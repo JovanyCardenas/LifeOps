@@ -135,6 +135,8 @@ class InventoryChange(OwnedModel):
     before = models.JSONField(default=dict)
     after = models.JSONField(default=dict)
     item_revision = models.PositiveIntegerField()
+    request_id = models.UUIDField(null=True, blank=True, unique=True)
+    request_fingerprint = models.CharField(max_length=64, blank=True)
     undoes = models.OneToOneField(
         "self",
         on_delete=models.PROTECT,

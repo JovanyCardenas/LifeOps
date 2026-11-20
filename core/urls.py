@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, inventory_views
+from . import views, inventory_views, inventory_api
 urlpatterns=[
  path('',views.landing,name='landing'),
  path('demo/',views.demo_login,name='demo_login'),
@@ -14,6 +14,14 @@ urlpatterns=[
  path("inventory/<int:pk>/delete/", inventory_views.archive_item),
  path("inventory/activity/", inventory_views.inventory_activity,name="inventory_activity"),
  path("inventory/activity/<int:pk>/undo/",inventory_views.undo_inventory_change, name="inventory_undo"),
+
+ path("api/inventory/", inventory_api.inventory_list, name="inventory_api_list"),
+
+ path(
+  "api/inventory/changes/",
+  inventory_api.inventory_write,
+  name="inventory_api_write",
+ ),
 
  path('<str:module>/',views.ModuleListView.as_view(),name='module_list'),
  path('<str:module>/add/',views.ModuleCreateView.as_view(),name='module_add'),

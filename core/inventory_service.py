@@ -31,6 +31,8 @@ def change_inventory(
     expected_revision=None,
     source="lifeops",
     undoes=None,
+    request_id=None,
+    request_fingerprint="",
 ):
     if set(values) - set(ITEM_FIELDS):
         raise ValidationError("The update contains an unsupported field.")
@@ -77,5 +79,7 @@ def change_inventory(
         after=snapshot(item),
         item_revision=item.revision,
         undoes=undoes,
+        request_id=request_id,
+        request_fingerprint=request_fingerprint,
     )
     return item
