@@ -148,6 +148,19 @@ class InventoryChange(OwnedModel):
     class Meta:
         ordering = ["-created_at", "-pk"]
 
+class InventoryAccessToken(OwnedModel):
+    label = models.CharField(max_length=60)
+    token_hash = models.CharField(max_length=64, unique=True, editable=False)
+    can_write = models.BooleanField(default=False)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+
+    def __str__(self):
+        return self.label
+
 class Message(models.Model):
     sender=models.ForeignKey(User,on_delete=models.CASCADE,related_name='sent_messages')
     recipient=models.ForeignKey(User,on_delete=models.CASCADE,related_name='received_messages')

@@ -1,1 +1,47 @@
-{% extends 'core/base.html' %}{% block content %}<div class="narrow"><div class="page-heading"><div><span class="eyebrow">Account</span><h1>Profile settings</h1><p>Control the basic information shown inside your LifeOps workspace.</p></div></div><div class="panel form-panel"><form method="post">{% csrf_token %}<div class="field"><label>Display name</label><input name="display_name" value="{{ profile.display_name }}" maxlength="120"></div><div class="field"><label>Role / description</label><input name="role" value="{{ profile.role }}" maxlength="120" placeholder="Student, IT technician, household admin…"></div><div class="field"><label>Email</label><input type="email" name="email" value="{{ user.email }}"></div><div class="form-actions"><button class="btn primary">Save profile</button><a class="btn ghost" href="{% url 'dashboard' %}">Back</a></div></form></div></div>{% endblock %}
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="narrow">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">Account</span>
+      <h1>Profile settings</h1>
+      <p>Control the basic information shown inside your LifeOps workspace.</p>
+    </div>
+  </div>
+
+  <div class="panel form-panel">
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="field">
+        <label for="display-name">Display name</label>
+        <input id="display-name" name="display_name"
+               value="{{ profile.display_name }}" maxlength="120">
+      </div>
+
+      <div class="field">
+        <label for="profile-role">Role / description</label>
+        <input id="profile-role" name="role" value="{{ profile.role }}"
+               maxlength="120" placeholder="Student, IT technician, household admin…">
+      </div>
+
+      <div class="field">
+        <label for="profile-email">Email</label>
+        <input id="profile-email" type="email" name="email" value="{{ user.email }}">
+      </div>
+
+      <div class="form-actions">
+        <button class="btn primary" type="submit">Save profile</button>
+        <a class="btn ghost" href="{% url 'dashboard' %}">Back</a>
+      </div>
+    </form>
+  </div>
+
+  <section class="panel form-panel" aria-labelledby="inventory-access-heading">
+    <h2 id="inventory-access-heading">Inventory access</h2>
+    <p>Create and revoke tokens for connecting your food inventory to external tools.</p>
+    <a class="btn ghost" href="{% url 'inventory_tokens' %}">Manage inventory tokens</a>
+  </section>
+</div>
+{% endblock %}

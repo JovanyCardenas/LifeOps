@@ -1,10 +1,13 @@
 import hashlib
-import hmac
-import os
+# import hmac
+# import os
+from django.conf import settings
+from django.utils import timezone
+
+from .models import InventoryAccessToken, InventoryChange, InventoryItem
 
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
-from .models import InventoryItem, InventoryChange, InventoryItem
 
 import json
 from decimal import Decimal, InvalidOperation
@@ -18,31 +21,39 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .inventory_service import change_inventory
 
-def get_inventory_owner(request):
-    configured_hash = os.environ.get("LIFEOPS_INVENTORY_TOKEN_SHA256", "")
-    owner_id = os.environ.get("LIFEOPS_INVENTORY_USER_ID", "")
-    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
-
-    if (
-        scheme.lower() != "bearer"
-        or not token
-        or len(configured_hash) != 64
-        or not owner_id.isascii()
-        or not owner_id.isdecimal()
-    ):
+def authenticate_inventory(request):
+    scheme, _, raw_token = request.headers.get("Authorization", "").partition(" ")
+    if scheme.lower() != "bearer" or not 20 <= len(raw_token) <= 128:
         return None
 
-    supplied_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-    if not hmac.compare_digest(supplied_hash, configured_hash):
+    digest = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    access = InventoryAccessToken.objects.select_related("user").filter(
+        token_hash=digest,
+        revoked_at__isnull=True,
+        user__is_active=True,
+    ).first()
+
+    if access is None:
+        return None
+    if access.user.get_username() == "demo" and not settings.LIFEOPS_ENABLE_DEMO:
         return None
 
-    return int(owner_id)
+    InventoryAccessToken.objects.filter(
+        pk=access.pk, revoked_at__isnull=True,
+    ).update(last_used_at=timezone.now())
+    return access
 
 
 @never_cache
 @require_GET
 def inventory_list(request):
-    owner_id = get_inventory_owner(request)
+    access = authenticate_inventory(request)
+    if access is None:
+        response = JsonResponse({"error": "Unauthorized"}, status=401)
+        response["WWW-Authenticate"] = "Bearer"
+        return response
+
+    owner_id = access.user_id
     if owner_id is None:
         response = JsonResponse({"error": "Unauthorized"}, status=401)
         response["WWW-Authenticate"] = "Bearer"
@@ -62,7 +73,11 @@ def inventory_list(request):
         )
     )
 
-    return JsonResponse({"items": list(items)})
+    return JsonResponse({
+        "account": access.user.get_username(),
+        "can_write": access.can_write,
+        "items": list(items),
+    })
 
 def inventory_error(message, status):
     return JsonResponse({"error": message}, status=status)
@@ -96,7 +111,16 @@ def inventory_replay(owner_id, request_id, fingerprint):
 @require_POST
 def inventory_write(request):
     # This route authenticates only with the inventory bearer token.
-    owner_id = get_inventory_owner(request)
+    access = authenticate_inventory(request)
+    if access is None:
+        response = inventory_error("Unauthorized", 401)
+        response["WWW-Authenticate"] = "Bearer"
+        return response
+
+    if not access.can_write:
+        return inventory_error("This token is read only.", 403)
+
+    owner_id = access.user_id
     if owner_id is None:
         response = inventory_error("Unauthorized", 401)
         response["WWW-Authenticate"] = "Bearer"
@@ -133,9 +157,7 @@ def inventory_write(request):
 
     try:
         with transaction.atomic():
-            owner = get_user_model().objects.filter(pk=owner_id, is_active=True).first()
-            if owner is None:
-                return inventory_error("Unauthorized", 401)
+            owner = access.user
 
             previous = inventory_replay(owner_id, request_id, fingerprint)
             if previous is not None:
@@ -193,7 +215,7 @@ def inventory_write(request):
                 values=values,
                 item_id=item_id,
                 expected_revision=revision,
-                source="ChatGPT via Desktop Commander",
+                source=f"Token #{access.pk}: {access.label}"[:32],
                 request_id=request_id,
                 request_fingerprint=fingerprint,
             )

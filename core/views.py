@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Q, Sum
 from django.http import Http404
@@ -56,6 +57,8 @@ def profile_settings(request):
     return render(request,'core/profile_settings.html',{'profile':profile})
 
 def demo_login(request):
+    if not settings.LIFEOPS_ENABLE_DEMO:
+        raise Http404
     user=get_object_or_404(User,username='demo')
     login(request,user,backend='django.contrib.auth.backends.ModelBackend')
     return redirect('dashboard')

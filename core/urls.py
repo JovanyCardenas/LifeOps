@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, inventory_views, inventory_api
+from . import views, inventory_views, inventory_api, inventory_token_views
 urlpatterns=[
  path('',views.landing,name='landing'),
  path('demo/',views.demo_login,name='demo_login'),
@@ -21,6 +21,17 @@ urlpatterns=[
   "api/inventory/changes/",
   inventory_api.inventory_write,
   name="inventory_api_write",
+ ),
+
+ path(
+  "profile/inventory-access/",
+  inventory_token_views.inventory_tokens,
+  name="inventory_tokens",
+ ),
+ path(
+  "profile/inventory-access/<int:pk>/revoke/",
+  inventory_token_views.revoke_inventory_token,
+  name="inventory_token_revoke",
  ),
 
  path('<str:module>/',views.ModuleListView.as_view(),name='module_list'),

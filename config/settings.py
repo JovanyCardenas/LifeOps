@@ -34,6 +34,9 @@ LANGUAGE_CODE='en-us'
 TIME_ZONE='America/Los_Angeles'
 USE_I18N=True
 USE_TZ=True
+LIFEOPS_ENABLE_DEMO = (
+    DEBUG and os.getenv("LIFEOPS_ENABLE_DEMO", "0") == "1"
+)
 STATIC_URL='static/'
 STATIC_ROOT=BASE_DIR/'staticfiles'
 DEFAULT_AUTO_FIELD='django.db.models.BigAutoField'

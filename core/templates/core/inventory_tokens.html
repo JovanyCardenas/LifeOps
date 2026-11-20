@@ -1,0 +1,71 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Inventory Access · LifeOps{% endblock %}
+
+{% block content %}
+<div class="narrow">
+  <div class="page-heading">
+    <div>
+      <h1>Inventory Access</h1>
+      <p>Create a connection for {{ request.user.get_username }}.</p>
+    </div>
+    <a class="btn ghost" href="{% url 'profile_settings' %}">Back to profile</a>
+  </div>
+
+  {% if raw_token %}
+    <div class="panel form-panel">
+      <h2>Copy your new token</h2>
+      <p>LifeOps shows it once. Paste it into the Windows connection prompt.</p>
+      <label for="api-url">API address</label>
+      <input id="api-url" value="{{ api_url }}" readonly>
+      <label for="new-token">Token</label>
+      <input id="new-token" value="{{ raw_token }}" readonly autocomplete="off">
+    </div>
+  {% endif %}
+
+  <div class="panel form-panel">
+    <h2>Create a token</h2>
+    {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <label for="token-label">Name</label>
+        <input id="token-label" name="label" maxlength="60" required
+               placeholder="Desktop Commander — Personal">
+      </div>
+      <div class="field">
+        <label for="token-mode">Permission</label>
+        <select id="token-mode" name="mode">
+          <option value="read">Read only</option>
+          <option value="write">Read and write</option>
+        </select>
+      </div>
+      <button class="btn primary" type="submit">Create token</button>
+    </form>
+  </div>
+
+  <div class="panel form-panel">
+    <h2>Your tokens</h2>
+    {% for token in tokens %}
+      <div class="record-row">
+        <div class="record-main">
+          <strong>{{ token.label }}</strong>
+          <span>{% if token.can_write %}Read and write{% else %}Read only{% endif %}</span>
+          <span>Created {{ token.created_at|date:"M j, Y g:i A" }}</span>
+          <span>Last used {{ token.last_used_at|date:"M j, Y g:i A"|default:"Never" }}</span>
+        </div>
+        {% if token.revoked_at %}
+          <span>Revoked {{ token.revoked_at|date:"M j, Y" }}</span>
+        {% else %}
+          <form method="post" action="{% url 'inventory_token_revoke' token.pk %}">
+            {% csrf_token %}
+            <button class="btn danger" type="submit">Revoke</button>
+          </form>
+        {% endif %}
+      </div>
+    {% empty %}
+      <p>No inventory tokens yet.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
